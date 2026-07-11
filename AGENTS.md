@@ -70,6 +70,15 @@ src/
 │   │       ├── migration/      # 扣子资产批量迁移工具
 │   │       ├── scheduling/     # AI调度与配额管控
 │   │       └── dashboard/      # Agent专项数据看板
+│   │   └── outbound-call/      # 智能推销外呼插件
+│   │       ├── page.tsx        # 外呼工作台（插件首页）
+│   │       ├── tasks/          # 外呼任务管理
+│   │       ├── numbers/        # 客户号码管理
+│   │       ├── blacklist/      # 黑名单管理
+│   │       ├── scripts/        # AI话术场景管理
+│   │       ├── records/        # 通话记录与复盘
+│   │       ├── reports/        # 数据报表中心
+│   │       └── config/         # 阿里云接口配置
 │   └── layout.tsx              # 根布局
 ├── components/
 │   ├── layout/                 # 布局组件
@@ -89,6 +98,7 @@ src/
 - **GEO插件**: #0F52BA (深蓝)
 - **AI客服插件**: #00B42A (绿色)
 - **Agent管理插件**: #FF7D00 (橙色)
+- **智能外呼插件**: #1677FF (蓝色，与系统主色一致)
 - **危险色**: #F53F39
 - **警告色**: #FF7D00
 - **成功色**: #00B42A
@@ -116,6 +126,15 @@ src/
 | `/ai-service/*` | AI客服插件 | 智推AI管理 |
 | `/agent/*` | Agent管理插件 | 智能体管理 |
 | `/agent` | Agent资源仓库 | 插件首页，表格布局管理Agent |
+| `/outbound-call/*` | 智能外呼插件 | 推销外呼管理 |
+| `/outbound-call` | 外呼工作台 | 外呼数据总览+图表 |
+| `/outbound-call/tasks` | 外呼任务管理 | 任务创建/启停/监控 |
+| `/outbound-call/numbers` | 客户号码管理 | 号码导入/筛选/批量操作 |
+| `/outbound-call/blacklist` | 黑名单管理 | 合规管控/防骚扰 |
+| `/outbound-call/scripts` | AI话术场景 | 阿里云话术脚本绑定 |
+| `/outbound-call/records` | 通话记录复盘 | 录音播放/对话转写 |
+| `/outbound-call/reports` | 数据报表中心 | 统计分析/导出 |
+| `/outbound-call/config` | 阿里云接口配置 | AccessKey/回调/检测 |
 | `/agent/chats` | 全平台对话记录查询 | 多条件筛选+对话快照 |
 | `/agent/sandbox` | Agent测试沙盒 | 运营测试智能体问答效果 |
 | `/agent/migration` | 扣子资产批量迁移 | 文件上传+导入日志 |

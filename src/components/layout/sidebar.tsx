@@ -19,6 +19,7 @@ import {
   Cpu,
   Settings,
   ScrollText,
+  Phone,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -92,9 +93,28 @@ const agentMenus: MenuItem[] = [
   },
 ];
 
+const outboundCallMenus: MenuItem[] = [
+  {
+    key: 'outbound-call',
+    label: '智能推销外呼',
+    icon: Phone,
+    path: '/outbound-call',
+    children: [
+      { key: 'oc-dashboard', label: '外呼工作台', path: '/outbound-call' },
+      { key: 'oc-tasks', label: '外呼任务管理', path: '/outbound-call/tasks' },
+      { key: 'oc-numbers', label: '客户号码管理', path: '/outbound-call/numbers' },
+      { key: 'oc-blacklist', label: '黑名单管理', path: '/outbound-call/blacklist' },
+      { key: 'oc-scripts', label: 'AI话术场景管理', path: '/outbound-call/scripts' },
+      { key: 'oc-records', label: '通话记录与复盘', path: '/outbound-call/records' },
+      { key: 'oc-reports', label: '数据报表中心', path: '/outbound-call/reports' },
+      { key: 'oc-config', label: '阿里云接口配置', path: '/outbound-call/config' },
+    ],
+  },
+];
+
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['geo', 'ai-service', 'agent']);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['geo', 'ai-service', 'agent', 'outbound-call']);
   const pathname = usePathname();
 
   const toggleGroup = (key: string) => {
@@ -190,6 +210,7 @@ export default function Sidebar() {
         {geoMenus.map(renderMenuItem)}
         {aiMenus.map(renderMenuItem)}
         {agentMenus.map(renderMenuItem)}
+        {outboundCallMenus.map(renderMenuItem)}
       </div>
 
       {/* Collapse Toggle */}

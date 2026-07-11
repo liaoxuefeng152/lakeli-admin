@@ -367,3 +367,162 @@ export const modelRouteConfigs: ModelRouteConfig[] = [
   { id: 'MR003', industry: '工业机械', defaultModel: '通义千问Max', agentCount: 1 },
   { id: 'MR004', industry: '本地商家', defaultModel: '文心4.0', agentCount: 1 },
 ];
+
+// ==================== 智能推销外呼系统 ====================
+
+export interface OutboundTask {
+  id: string;
+  name: string;
+  scriptSceneId: string;
+  scriptSceneName: string;
+  totalNumbers: number;
+  calledCount: number;
+  connectedCount: number;
+  leadCount: number;
+  status: '待执行' | '执行中' | '已暂停' | '已完成' | '已终止' | '异常失败';
+  callMode: '自动外呼' | '预测外呼';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PhoneNumberItem {
+  id: string;
+  phone: string;
+  customerName: string;
+  remark: string;
+  source: string;
+  callStatus: '未拨打' | '已拨打' | '已接通' | '有意向' | '无意向';
+  intentTag: string;
+  lastCallTime: string;
+  createdAt: string;
+}
+
+export interface BlacklistItem {
+  id: string;
+  phone: string;
+  reason: string;
+  operator: string;
+  createdAt: string;
+}
+
+export interface ScriptScene {
+  id: string;
+  name: string;
+  instanceId: string;
+  scriptId: string;
+  status: '启用' | '禁用';
+  openingScript: string;
+  closingScript: string;
+  faqCount: number;
+  createdAt: string;
+}
+
+export interface CallRecord {
+  id: string;
+  taskId: string;
+  taskName: string;
+  phone: string;
+  customerName: string;
+  callTime: string;
+  duration: number; // seconds
+  status: '已接通' | '未接通' | '空号' | '停机' | '拒接' | '正在拨打';
+  intentTag: 'S-高意向' | 'A-观望' | 'B-无意向' | 'C-无效号码' | 'D-拒接';
+  recordingUrl: string;
+  transcript: { role: 'robot' | 'customer'; content: string }[];
+}
+
+export interface OutboundCallConfig {
+  accessKeyId: string;
+  accessKeySecret: string;
+  outboundPhone: string;
+  callbackUrl: string;
+  timeout: number;
+  retryCount: number;
+  status: '已连接' | '未配置' | '连接失败';
+}
+
+export const outboundTasks: OutboundTask[] = [
+  { id: 'OT001', name: '黄精保健品618促销外呼', scriptSceneId: 'SS001', scriptSceneName: '黄精保健品推销', totalNumbers: 500, calledCount: 487, connectedCount: 312, leadCount: 45, status: '已完成', callMode: '自动外呼', createdAt: '2026-06-15 09:00', updatedAt: '2026-06-15 18:30' },
+  { id: 'OT002', name: 'GEO服务新客推广', scriptSceneId: 'SS002', scriptSceneName: 'GEO服务推广', totalNumbers: 200, calledCount: 156, connectedCount: 98, leadCount: 22, status: '执行中', callMode: '自动外呼', createdAt: '2026-07-10 09:00', updatedAt: '2026-07-10 14:20' },
+  { id: 'OT003', name: 'AI客服产品回访', scriptSceneId: 'SS003', scriptSceneName: '客户回访', totalNumbers: 100, calledCount: 0, connectedCount: 0, leadCount: 0, status: '待执行', callMode: '预测外呼', createdAt: '2026-07-11 10:00', updatedAt: '2026-07-11 10:00' },
+  { id: 'OT004', name: '工业设备展会邀约', scriptSceneId: 'SS004', scriptSceneName: '展会邀约', totalNumbers: 300, calledCount: 120, connectedCount: 75, leadCount: 18, status: '已暂停', callMode: '自动外呼', createdAt: '2026-07-08 09:30', updatedAt: '2026-07-09 16:00' },
+  { id: 'OT005', name: '本地商家地推跟进', scriptSceneId: 'SS005', scriptSceneName: '本地商家推销', totalNumbers: 150, calledCount: 150, connectedCount: 88, leadCount: 31, status: '已完成', callMode: '自动外呼', createdAt: '2026-07-05 09:00', updatedAt: '2026-07-05 17:30' },
+  { id: 'OT006', name: '跨境电商服务推广', scriptSceneId: 'SS002', scriptSceneName: 'GEO服务推广', totalNumbers: 80, calledCount: 12, connectedCount: 5, leadCount: 1, status: '异常失败', callMode: '自动外呼', createdAt: '2026-07-09 14:00', updatedAt: '2026-07-09 14:30' },
+];
+
+export const phoneNumbers: PhoneNumberItem[] = [
+  { id: 'PN001', phone: '138****1234', customerName: '张伟', remark: '黄精保健品意向客户', source: '官网表单', callStatus: '有意向', intentTag: 'A-观望', lastCallTime: '2026-07-10 14:30', createdAt: '2026-07-01 10:00' },
+  { id: 'PN002', phone: '139****5678', customerName: '李娜', remark: 'GEO服务咨询', source: '电话营销', callStatus: '已接通', intentTag: 'B-无意向', lastCallTime: '2026-07-10 15:00', createdAt: '2026-07-02 11:00' },
+  { id: 'PN003', phone: '136****9012', customerName: '王强', remark: '工业设备采购经理', source: '展会收集', callStatus: '未拨打', intentTag: '', lastCallTime: '', createdAt: '2026-07-03 09:00' },
+  { id: 'PN004', phone: '137****3456', customerName: '赵敏', remark: '本地餐饮老板', source: '地推', callStatus: '有意向', intentTag: 'S-高意向', lastCallTime: '2026-07-10 16:20', createdAt: '2026-07-04 14:00' },
+  { id: 'PN005', phone: '135****7890', customerName: '刘洋', remark: '跨境电商负责人', source: '官网表单', callStatus: '已拨打', intentTag: '', lastCallTime: '2026-07-09 11:00', createdAt: '2026-07-05 10:00' },
+  { id: 'PN006', phone: '133****2345', customerName: '陈芳', remark: '', source: '电话营销', callStatus: '未拨打', intentTag: '', lastCallTime: '', createdAt: '2026-07-06 09:00' },
+  { id: 'PN007', phone: '158****6789', customerName: '杨磊', remark: '黄精保健品老客户', source: '客户转介绍', callStatus: '已接通', intentTag: 'A-观望', lastCallTime: '2026-07-10 10:30', createdAt: '2026-07-07 15:00' },
+  { id: 'PN008', phone: '159****0123', customerName: '周婷', remark: 'AI客服需求', source: '官网表单', callStatus: '未拨打', intentTag: '', lastCallTime: '', createdAt: '2026-07-08 11:00' },
+];
+
+export const blacklistItems: BlacklistItem[] = [
+  { id: 'BL001', phone: '130****9999', reason: '客户明确要求不再拨打', operator: '张三', createdAt: '2026-07-01 10:00' },
+  { id: 'BL002', phone: '131****8888', reason: '投诉骚扰', operator: '李四', createdAt: '2026-07-03 14:30' },
+  { id: 'BL003', phone: '132****7777', reason: '号码已注销', operator: '张三', createdAt: '2026-07-05 09:00' },
+  { id: 'BL004', phone: '155****6666', reason: '客户明确表示无需求', operator: '王五', createdAt: '2026-07-08 16:00' },
+];
+
+export const scriptScenes: ScriptScene[] = [
+  { id: 'SS001', name: '黄精保健品推销', instanceId: 'inst-abc123', scriptId: 'script-hj001', status: '启用', openingScript: '您好，这里是拉克力健康顾问，我们有一款源自长白山的天然黄精保健品...', closingScript: '感谢您的时间，如有需要随时联系我们，祝您生活愉快！', faqCount: 12, createdAt: '2026-06-01 10:00' },
+  { id: 'SS002', name: 'GEO服务推广', instanceId: 'inst-abc123', scriptId: 'script-geo002', status: '启用', openingScript: '您好，我是拉克力GEO优化顾问，请问您了解过AI搜索优化服务吗？...', closingScript: '感谢您的关注，我们会在24小时内发送详细方案到您邮箱。', faqCount: 8, createdAt: '2026-06-15 14:00' },
+  { id: 'SS003', name: '客户回访', instanceId: 'inst-abc123', scriptId: 'script-visit003', status: '启用', openingScript: '您好，这里是拉克力客服中心，想对您之前的服务体验做个简单回访...', closingScript: '感谢您的反馈，我们会持续改进服务质量。', faqCount: 5, createdAt: '2026-07-01 09:00' },
+  { id: 'SS004', name: '展会邀约', instanceId: 'inst-def456', scriptId: 'script-expo004', status: '禁用', openingScript: '您好，我们是拉克力科技，8月份在广交会有展位，想邀请您参加...', closingScript: '期待在展会上见到您，届时会有专属优惠。', faqCount: 6, createdAt: '2026-07-05 11:00' },
+  { id: 'SS005', name: '本地商家推销', instanceId: 'inst-def456', scriptId: 'script-local005', status: '启用', openingScript: '您好，我们是拉克力本地生活服务平台，专门帮助本地商家提升线上曝光...', closingScript: '感谢了解，我们可以安排专人上门为您做免费诊断。', faqCount: 10, createdAt: '2026-07-03 15:00' },
+];
+
+export const callRecords: CallRecord[] = [
+  { id: 'CR001', taskId: 'OT001', taskName: '黄精保健品618促销外呼', phone: '138****1234', customerName: '张伟', callTime: '2026-07-10 14:30', duration: 125, status: '已接通', intentTag: 'S-高意向', recordingUrl: '#', transcript: [
+    { role: 'robot', content: '您好，这里是拉克力健康顾问，我们有一款源自长白山的天然黄精保健品，想跟您简单介绍一下，方便吗？' },
+    { role: 'customer', content: '嗯，你说吧，我听听。' },
+    { role: 'robot', content: '好的。我们的黄精保健品采用长白山野生黄精，经过九蒸九晒传统工艺制作，具有补气养阴、健脾润肺的功效。目前有618特惠活动，买二送一，您有兴趣了解一下吗？' },
+    { role: 'customer', content: '价格多少？有什么成分？' },
+    { role: 'robot', content: '我们的黄精胶囊每盒298元，主要成分是黄精多糖、黄精皂苷，每盒60粒，建议每天2次每次2粒。618活动买二送一，三盒只要596元。' },
+    { role: 'customer', content: '听起来不错，能发个详细资料给我看看吗？' },
+    { role: 'robot', content: '好的，我这边安排专属顾问在24小时内把详细资料发给您，请问您的手机号是多少？' },
+    { role: 'customer', content: '就这个手机号13812341234' },
+    { role: 'robot', content: '好的，已为您记录。我们的健康顾问会在今天内联系您，感谢您的关注！' },
+  ]},
+  { id: 'CR002', taskId: 'OT001', taskName: '黄精保健品618促销外呼', phone: '139****5678', customerName: '李娜', callTime: '2026-07-10 15:00', duration: 38, status: '已接通', intentTag: 'B-无意向', recordingUrl: '#', transcript: [
+    { role: 'robot', content: '您好，这里是拉克力健康顾问，我们有一款源自长白山的天然黄精保健品...' },
+    { role: 'customer', content: '不需要，谢谢。' },
+    { role: 'robot', content: '好的，打扰您了，祝您生活愉快！' },
+  ]},
+  { id: 'CR003', taskId: 'OT002', taskName: 'GEO服务新客推广', phone: '136****9012', customerName: '王强', callTime: '2026-07-10 15:30', duration: 0, status: '未接通', intentTag: 'C-无效号码', recordingUrl: '#', transcript: [] },
+  { id: 'CR004', taskId: 'OT002', taskName: 'GEO服务新客推广', phone: '137****3456', customerName: '赵敏', callTime: '2026-07-10 16:20', duration: 210, status: '已接通', intentTag: 'S-高意向', recordingUrl: '#', transcript: [
+    { role: 'robot', content: '您好，我是拉克力GEO优化顾问，请问您了解过AI搜索优化服务吗？' },
+    { role: 'customer', content: 'AI搜索优化？具体是什么？' },
+    { role: 'robot', content: 'GEO是Generative Engine Optimization的缩写，帮助您的品牌在ChatGPT、Perplexity、Google SGE等AI搜索引擎中被推荐。现在越来越多的用户通过AI获取答案，如果您的品牌不在AI推荐列表中，就会失去大量潜在客户。' },
+    { role: 'customer', content: '这个确实有道理，我们做跨境电商的，很需要这个服务。怎么收费？' },
+    { role: 'robot', content: '我们提供三种方案：基础版5800元/年、专业版12800元/年、旗舰版28800元/年。针对跨境电商企业，我推荐专业版，覆盖多语言AI搜索优化。' },
+    { role: 'customer', content: '专业版都包含什么？能看看案例吗？' },
+    { role: 'robot', content: '专业版包含：AI搜索排名监控、多语言内容优化、竞品分析、每周报告。我们有多个跨境电商成功案例，我安排顾问发给您参考。方便留个联系方式吗？' },
+    { role: 'customer', content: '好的，我微信zhao_min_2026' },
+    { role: 'robot', content: '收到！我们的跨境GEO顾问会在24小时内添加您微信，发送详细方案和案例。感谢您的信任！' },
+  ]},
+  { id: 'CR005', taskId: 'OT005', taskName: '本地商家地推跟进', phone: '133****2345', customerName: '陈芳', callTime: '2026-07-10 10:00', duration: 0, status: '拒接', intentTag: 'D-拒接', recordingUrl: '#', transcript: [] },
+  { id: 'CR006', taskId: 'OT005', taskName: '本地商家地推跟进', phone: '158****6789', customerName: '杨磊', callTime: '2026-07-10 10:30', duration: 95, status: '已接通', intentTag: 'A-观望', recordingUrl: '#', transcript: [
+    { role: 'robot', content: '您好，我们是拉克力本地生活服务平台，专门帮助本地商家提升线上曝光率...' },
+    { role: 'customer', content: '哦，你们具体做什么的？' },
+    { role: 'robot', content: '我们帮助本地商家在AI搜索、大众点评、美团等平台提升曝光，让更多附近客户找到您。目前有免费诊断活动，可以帮您分析目前线上曝光情况。' },
+    { role: 'customer', content: '我考虑考虑吧，暂时不急。' },
+    { role: 'robot', content: '理解的，我先帮您做个免费诊断，您看看结果再决定。方便加个微信吗？' },
+    { role: 'customer', content: '行吧，yanglei888' },
+    { role: 'robot', content: '好的，我们运营同事会添加您微信，发送免费诊断报告。感谢您的时间！' },
+  ]},
+];
+
+export const outboundCallConfig: OutboundCallConfig = {
+  accessKeyId: 'LTAI5t****',
+  accessKeySecret: '******',
+  outboundPhone: '0571-8888****',
+  callbackUrl: 'https://api.lakeli.com/callback/outbound',
+  timeout: 30,
+  retryCount: 3,
+  status: '已连接',
+};
