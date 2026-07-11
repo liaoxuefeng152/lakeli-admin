@@ -10,6 +10,7 @@ import {
   LogOut,
   Globe,
   Bot,
+  Cpu,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -88,7 +89,15 @@ export default function TopNav() {
                 onClick={() => setShowPluginMenu(false)}
               >
                 <Bot className="h-4 w-4 text-[#00B42A]" />
-                智推AI客服Agent
+                智推AI客服
+              </Link>
+              <Link
+                href="/agent"
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                onClick={() => setShowPluginMenu(false)}
+              >
+                <Cpu className="h-4 w-4 text-[#FF7D00]" />
+                Agent智能体管理
               </Link>
             </div>
           )}

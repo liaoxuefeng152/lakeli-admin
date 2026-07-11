@@ -7,11 +7,13 @@ import {
   AlertTriangle,
   Globe,
   Bot,
+  Cpu,
   ArrowRight,
   TrendingUp,
   Clock,
   UserPlus,
   ThumbsDown,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -80,6 +82,13 @@ export default function DashboardPage() {
       color: '#FF7D00',
       link: '/ai-service/feedback',
     },
+    {
+      label: 'Agent高Token消耗预警',
+      count: dashboardStats.agentHighTokenAlert,
+      icon: Zap,
+      color: '#722ED1',
+      link: '/agent/scheduling',
+    },
   ];
 
   return (
@@ -113,7 +122,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Plugin Entry Cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <Link
           href="/geo"
           className="group flex items-center gap-5 rounded-xl bg-white p-6 shadow-sm border border-gray-100 hover:border-[#0F52BA]/30 hover:shadow-md transition-all"
@@ -136,10 +145,24 @@ export default function DashboardPage() {
             <Bot className="h-7 w-7 text-[#00B42A]" />
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-semibold text-gray-900">智推AI客服Agent</h3>
+            <h3 className="text-base font-semibold text-gray-900">智推AI客服</h3>
             <p className="text-sm text-gray-500 mt-1">AI对话记录、意向关键词、企微会话管理</p>
           </div>
           <ArrowRight className="h-5 w-5 text-gray-300 group-hover:text-[#00B42A] transition-colors" />
+        </Link>
+
+        <Link
+          href="/agent"
+          className="group flex items-center gap-5 rounded-xl bg-white p-6 shadow-sm border border-gray-100 hover:border-[#FF7D00]/30 hover:shadow-md transition-all"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#FF7D00]/10">
+            <Cpu className="h-7 w-7 text-[#FF7D00]" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-semibold text-gray-900">Agent智能体管理</h3>
+            <p className="text-sm text-gray-500 mt-1">智能体配置、对话记录、Token消耗管控</p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-gray-300 group-hover:text-[#FF7D00] transition-colors" />
         </Link>
       </div>
 

@@ -50,6 +50,8 @@ src/
 │   │   ├── knowledge/          # 知识库管理
 │   │   ├── wecom/              # 企微配置中心
 │   │   ├── analytics/          # 全域数据看板
+│   │   ├── system-config/      # 系统基础配置
+│   │   ├── operation-log/      # 操作日志
 │   │   ├── geo/                # 域途GEO SaaS插件
 │   │   │   ├── diagnostics/    # GEO诊断记录
 │   │   │   ├── copy/           # 文案生成记录
@@ -61,6 +63,11 @@ src/
 │   │       ├── quota/          # AI配额设置
 │   │       ├── wecom-archive/  # 企微会话存档
 │   │       └── feedback/       # 用户反馈统计
+│   │   └── agent/              # Agent智能体管理插件
+│   │       ├── chats/          # Agent对话记录
+│   │       ├── migration/      # 扣子资产迁移
+│   │       ├── scheduling/     # AI调度&配额管控
+│   │       └── dashboard/      # Agent数据看板
 │   └── layout.tsx              # 根布局
 ├── components/
 │   ├── layout/                 # 布局组件
@@ -79,6 +86,7 @@ src/
 - **主色**: #1677FF (拉克力蓝)
 - **GEO插件**: #0F52BA (深蓝)
 - **AI客服插件**: #00B42A (绿色)
+- **Agent管理插件**: #FF7D00 (橙色)
 - **危险色**: #F53F39
 - **警告色**: #FF7D00
 - **成功色**: #00B42A
@@ -100,8 +108,11 @@ src/
 | `/knowledge` | 知识库 | 三大分类管理 |
 | `/wecom` | 企微配置 | 全局企微设置 |
 | `/analytics` | 数据看板 | 全域数据图表 |
+| `/system-config` | 系统配置 | 全局参数设置 |
+| `/operation-log` | 操作日志 | 全平台操作留痕 |
 | `/geo/*` | GEO插件 | 域途GEO管理 |
 | `/ai-service/*` | AI客服插件 | 智推AI管理 |
+| `/agent/*` | Agent管理插件 | 智能体管理 |
 
 ## 角色权限
 

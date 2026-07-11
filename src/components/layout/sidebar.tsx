@@ -16,7 +16,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
-  Plug,
+  Cpu,
+  Settings,
+  ScrollText,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -36,6 +38,8 @@ const platformMenus: MenuItem[] = [
   { key: 'knowledge', label: '知识库管理', icon: BookOpen, path: '/knowledge' },
   { key: 'wecom', label: '企微配置中心', icon: MessageSquare, path: '/wecom' },
   { key: 'analytics', label: '数据总看板', icon: BarChart3, path: '/analytics' },
+  { key: 'system-config', label: '系统基础配置', icon: Settings, path: '/system-config' },
+  { key: 'operation-log', label: '操作日志', icon: ScrollText, path: '/operation-log' },
 ];
 
 const geoMenus: MenuItem[] = [
@@ -58,7 +62,7 @@ const geoMenus: MenuItem[] = [
 const aiMenus: MenuItem[] = [
   {
     key: 'ai-service',
-    label: '智推AI客服Agent',
+    label: '智推AI客服',
     icon: Bot,
     path: '/ai-service',
     children: [
@@ -71,9 +75,25 @@ const aiMenus: MenuItem[] = [
   },
 ];
 
+const agentMenus: MenuItem[] = [
+  {
+    key: 'agent',
+    label: 'Agent智能体管理',
+    icon: Cpu,
+    path: '/agent',
+    children: [
+      { key: 'agent-repo', label: 'Agent资源仓库', path: '/agent' },
+      { key: 'agent-chats', label: 'Agent对话记录', path: '/agent/chats' },
+      { key: 'agent-migration', label: '扣子资产迁移', path: '/agent/migration' },
+      { key: 'agent-scheduling', label: 'AI调度&配额管控', path: '/agent/scheduling' },
+      { key: 'agent-dashboard', label: 'Agent数据看板', path: '/agent/dashboard' },
+    ],
+  },
+];
+
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['geo', 'ai-service']);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['geo', 'ai-service', 'agent']);
   const pathname = usePathname();
 
   const toggleGroup = (key: string) => {
@@ -168,6 +188,7 @@ export default function Sidebar() {
         )}
         {geoMenus.map(renderMenuItem)}
         {aiMenus.map(renderMenuItem)}
+        {agentMenus.map(renderMenuItem)}
       </div>
 
       {/* Collapse Toggle */}
