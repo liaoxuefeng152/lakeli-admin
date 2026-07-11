@@ -1,65 +1,119 @@
-# 项目上下文
+# 拉克力后台管理系统 - AGENTS.md
 
-### 版本技术栈
+## 项目概览
+
+拉克力后台管理系统是公司全产品一体化统一管理中台，采用「统一底座 + 业务模块化插件」架构。一期集成域途GEO SaaS和智推AI客服Agent两大业务插件。
+
+## 技术栈
 
 - **Framework**: Next.js 16 (App Router)
 - **Core**: React 19
 - **Language**: TypeScript 5
-- **UI 组件**: shadcn/ui (基于 Radix UI)
-- **Styling**: Tailwind CSS 4
+- **UI**: shadcn/ui (Radix UI) + Tailwind CSS 4
+- **Charts**: Recharts
+- **Icons**: Lucide React
+
+## 构建与运行
+
+```bash
+# 安装依赖
+pnpm install
+
+# 开发环境
+pnpm run dev
+
+# 构建
+pnpm run build
+
+# 生产启动
+pnpm run start
+
+# 类型检查
+pnpm ts-check
+
+# Lint
+pnpm lint
+```
 
 ## 目录结构
 
 ```
-├── public/                 # 静态资源
-├── scripts/                # 构建与启动脚本
-│   ├── build.sh            # 构建脚本
-│   ├── dev.sh              # 开发环境启动脚本
-│   ├── prepare.sh          # 预处理脚本
-│   └── start.sh            # 生产环境启动脚本
-├── src/
-│   ├── app/                # 页面路由与布局
-│   ├── components/ui/      # Shadcn UI 组件库
-│   ├── hooks/              # 自定义 Hooks
-│   ├── lib/                # 工具库
-│   │   └── utils.ts        # 通用工具函数 (cn)
-│   └── server.ts           # 自定义服务端入口
-├── next.config.ts          # Next.js 配置
-├── package.json            # 项目依赖管理
-└── tsconfig.json           # TypeScript 配置
+src/
+├── app/
+│   ├── (auth)/login/           # 登录页
+│   ├── (dashboard)/            # 管理后台路由组
+│   │   ├── dashboard/          # 工作台首页
+│   │   ├── accounts/           # 账号权限管理
+│   │   ├── customers/          # 全域客户档案
+│   │   ├── leads/              # 全域线索管理
+│   │   ├── orders/             # 订单计费中心
+│   │   ├── knowledge/          # 知识库管理
+│   │   ├── wecom/              # 企微配置中心
+│   │   ├── analytics/          # 全域数据看板
+│   │   ├── geo/                # 域途GEO SaaS插件
+│   │   │   ├── diagnostics/    # GEO诊断记录
+│   │   │   ├── copy/           # 文案生成记录
+│   │   │   ├── keywords/       # 关键词挖掘
+│   │   │   ├── monitor/        # AI监测数据
+│   │   │   └── templates/      # 行业模板管理
+│   │   └── ai-service/         # 智推AI客服插件
+│   │       ├── keywords/       # 意向关键词配置
+│   │       ├── quota/          # AI配额设置
+│   │       ├── wecom-archive/  # 企微会话存档
+│   │       └── feedback/       # 用户反馈统计
+│   └── layout.tsx              # 根布局
+├── components/
+│   ├── layout/                 # 布局组件
+│   │   ├── sidebar.tsx         # 侧边菜单栏
+│   │   └── top-nav.tsx         # 顶部导航栏
+│   └── ui/                     # shadcn/ui 组件库
+├── lib/
+│   ├── mock-data.ts            # Mock数据
+│   └── utils.ts                # 工具函数
+└── hooks/                      # 自定义Hooks
 ```
 
-- 项目文件（如 app 目录、pages 目录、components 等）默认初始化到 `src/` 目录下。
+## 设计规范
 
-## 包管理规范
+### 色彩体系
+- **主色**: #1677FF (拉克力蓝)
+- **GEO插件**: #0F52BA (深蓝)
+- **AI客服插件**: #00B42A (绿色)
+- **危险色**: #F53F39
+- **警告色**: #FF7D00
+- **成功色**: #00B42A
 
-**仅允许使用 pnpm** 作为包管理器，**严禁使用 npm 或 yarn**。
-**常用命令**：
-- 安装依赖：`pnpm add <package>`
-- 安装开发依赖：`pnpm add -D <package>`
-- 安装所有依赖：`pnpm install`
-- 移除依赖：`pnpm remove <package>`
+### 字体
+- 中文: PingFang SC / Microsoft YaHei
+- 英文: Inter
 
-## 开发规范
+## 路由说明
 
-### 编码规范
+| 路径 | 页面 | 说明 |
+|------|------|------|
+| `/login` | 登录页 | 系统登录入口 |
+| `/dashboard` | 工作台 | 数据总览+插件入口 |
+| `/accounts` | 账号管理 | 超管可见 |
+| `/customers` | 客户档案 | 360度全景视图 |
+| `/leads` | 线索管理 | 全域线索池 |
+| `/orders` | 订单中心 | 订单+套餐配置 |
+| `/knowledge` | 知识库 | 三大分类管理 |
+| `/wecom` | 企微配置 | 全局企微设置 |
+| `/analytics` | 数据看板 | 全域数据图表 |
+| `/geo/*` | GEO插件 | 域途GEO管理 |
+| `/ai-service/*` | AI客服插件 | 智推AI管理 |
 
-- 默认按 TypeScript `strict` 心智写代码；优先复用当前作用域已声明的变量、函数、类型和导入，禁止引用未声明标识符或拼错变量名。
-- 禁止隐式 `any` 和 `as any`；函数参数、返回值、解构项、事件对象、`catch` 错误在使用前应有明确类型或先完成类型收窄，并清理未使用的变量和导入。
+## 角色权限
 
-### next.config 配置规范
+| 角色 | 可见模块 |
+|------|----------|
+| 超级管理员 | 全部 |
+| 运营 | 隐藏账号管理、财务流水 |
+| 销售/客服 | 仅客户档案、线索、AI对话 |
 
-- 配置的路径不要写死绝对路径，必须使用 path.resolve(__dirname, ...)、import.meta.dirname 或 process.cwd() 动态拼接。
+## 注意事项
 
-### Hydration 问题防范
-
-1. 严禁在 JSX 渲染逻辑中直接使用 typeof window、Date.now()、Math.random() 等动态数据。**必须使用 'use client' 并配合 useEffect + useState 确保动态内容仅在客户端挂载后渲染**；同时严禁非法 HTML 嵌套（如 <p> 嵌套 <div>）。
-2. **禁止使用 head 标签**，优先使用 metadata，详见文档：https://nextjs.org/docs/app/api-reference/functions/generate-metadata
-   1. 三方 CSS、字体等资源可在 `globals.css` 中顶部通过 `@import` 引入或使用 next/font
-   2. preload, preconnect, dns-prefetch 通过 ReactDOM 的 preload、preconnect、dns-prefetch 方法引入
-   3. json-ld 可阅读 https://nextjs.org/docs/app/guides/json-ld
-
-## UI 设计与组件规范 (UI & Styling Standards)
-
-- 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
-- Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+- 当前为前端演示版本，使用 Mock 数据
+- 所有页面采用插件化架构，主题色随模块切换
+- 表格统一支持筛选、排序、批量操作
+- 高危操作（删除/禁用）需二次确认
