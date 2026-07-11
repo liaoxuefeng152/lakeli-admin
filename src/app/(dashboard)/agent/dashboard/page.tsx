@@ -1,140 +1,147 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageSquare, Zap, Users, TrendingUp } from 'lucide-react';
+import { MessageSquare, Zap, Users, Bot, Download } from 'lucide-react';
 import { agents } from '@/lib/mock-data';
+import { Button } from '@/components/ui/button';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  LineChart, Line,
+  BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
 } from 'recharts';
 
-const chatVolumeData = [
-  { date: '07-04', 跨境电商顾问: 180, 工业设备专家: 95, 本地门店助手: 130 },
-  { date: '07-05', 跨境电商顾问: 165, 工业设备专家: 88, 本地门店助手: 120 },
-  { date: '07-06', 跨境电商顾问: 200, 工业设备专家: 102, 本地门店助手: 145 },
-  { date: '07-07', 跨境电商顾问: 150, 工业设备专家: 78, 本地门店助手: 110 },
-  { date: '07-08', 跨境电商顾问: 220, 工业设备专家: 115, 本地门店助手: 155 },
-  { date: '07-09', 跨境电商顾问: 175, 工业设备专家: 92, 本地门店助手: 128 },
-  { date: '07-10', 跨境电商顾问: 195, 工业设备专家: 108, 本地门店助手: 140 },
+// Line chart data - 30 day conversation & lead trend
+const trendData = [
+  { date: '06-11', 对话量: 320, 线索: 12 },
+  { date: '06-14', 对话量: 380, 线索: 15 },
+  { date: '06-17', 对话量: 350, 线索: 11 },
+  { date: '06-20', 对话量: 420, 线索: 18 },
+  { date: '06-23', 对话量: 390, 线索: 14 },
+  { date: '06-26', 对话量: 450, 线索: 20 },
+  { date: '06-29', 对话量: 410, 线索: 16 },
+  { date: '07-02', 对话量: 480, 线索: 22 },
+  { date: '07-05', 对话量: 520, 线索: 25 },
+  { date: '07-08', 对话量: 490, 线索: 21 },
+  { date: '07-10', 对话量: 550, 线索: 28 },
 ];
 
-const tokenConsumption = [
-  { name: '跨境电商顾问', value: 850000, color: '#FF7D00' },
-  { name: '本地门店助手', value: 580000, color: '#FFB366' },
-  { name: '工业设备专家', value: 420000, color: '#FFD699' },
-  { name: '黄精外贸顾问', value: 310000, color: '#FFE5CC' },
-  { name: '科创企业助手', value: 85000, color: '#FFF2E5' },
+// Pie chart data - industry conversation share
+const industryShare = [
+  { name: '通用GEO', value: 1370, color: '#FF7D00' },
+  { name: '本地商家', value: 920, color: '#FFB366' },
+  { name: '工业机械', value: 680, color: '#FFD699' },
+  { name: '黄精跨境', value: 450, color: '#FFE5CC' },
 ];
 
-const leadProduction = [
-  { agent: '跨境电商顾问', leads: 45, rate: 3.6 },
-  { agent: '本地门店助手', leads: 38, rate: 4.1 },
-  { agent: '工业设备专家', leads: 22, rate: 3.2 },
-  { agent: '黄精外贸顾问', leads: 15, rate: 3.3 },
-  { agent: '科创企业助手', leads: 5, rate: 4.2 },
+// Bar chart data - token consumption ranking
+const tokenRanking = [
+  { name: '跨境电商顾问', token: 850, full: 850000 },
+  { name: '本地门店助手', token: 580, full: 580000 },
+  { name: '工业设备专家', token: 420, full: 420000 },
+  { name: '黄精外贸顾问', token: 310, full: 310000 },
+  { name: '科创企业助手', token: 85, full: 85000 },
 ];
 
-const COLORS = ['#FF7D00', '#FFB366', '#FFD699', '#FFE5CC', '#FFF2E5'];
+const COLORS = ['#FF7D00', '#FFB366', '#FFD699', '#FFE5CC'];
 
 export default function AgentDashboardPage() {
-  const [timeRange, setTimeRange] = useState('7d');
+  const [timeRange, setTimeRange] = useState('today');
 
-  const totalChats = agents.reduce((sum, a) => sum + a.totalChats, 0);
-  const totalTokens = agents.reduce((sum, a) => sum + a.tokenUsed, 0);
-  const totalLeads = agents.reduce((sum, a) => sum + a.leadCount, 0);
+  const activeAgents = agents.filter((a) => a.status === 'active').length;
+  const todayChats = 550;
+  const todayLeads = 28;
+  const todayTokens = 2240000;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Agent专项数据看板</h1>
           <p className="text-sm text-gray-500 mt-1">各智能体对话量、线索产出、Token消耗排行</p>
         </div>
-        <div className="flex gap-2">
-          {['7d', '30d', 'custom'].map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                timeRange === range
-                  ? 'bg-[#FF7D00] text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {range === '7d' ? '近7天' : range === '30d' ? '近30天' : '自定义'}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">今日</SelectItem>
+              <SelectItem value="7d">近7天</SelectItem>
+              <SelectItem value="30d">近30天</SelectItem>
+              <SelectItem value="custom">自定义区间</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline">
+            <Download className="mr-2 h-4 w-4" />
+            导出全量数据报表
+          </Button>
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* 4 Orange Indicator Cards */}
       <div className="grid grid-cols-4 gap-4">
+        <div className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF7D00]/10">
+              <Bot className="h-5 w-5 text-[#FF7D00]" />
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">总上架Agent数量</div>
+              <div className="text-xl font-bold text-gray-900">{activeAgents}</div>
+            </div>
+          </div>
+        </div>
         <div className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF7D00]/10">
               <MessageSquare className="h-5 w-5 text-[#FF7D00]" />
             </div>
             <div>
-              <div className="text-sm text-gray-500">总对话量</div>
-              <div className="text-xl font-bold text-gray-900">{totalChats.toLocaleString()}</div>
+              <div className="text-sm text-gray-500">今日总对话量</div>
+              <div className="text-xl font-bold text-gray-900">{todayChats.toLocaleString()}</div>
             </div>
           </div>
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50">
-              <Zap className="h-5 w-5 text-purple-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF7D00]/10">
+              <Users className="h-5 w-5 text-[#FF7D00]" />
             </div>
             <div>
-              <div className="text-sm text-gray-500">Token总消耗</div>
-              <div className="text-xl font-bold text-gray-900">{(totalTokens / 1000000).toFixed(2)}M</div>
+              <div className="text-sm text-gray-500">今日新增有效线索</div>
+              <div className="text-xl font-bold text-gray-900">{todayLeads}</div>
             </div>
           </div>
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50">
-              <Users className="h-5 w-5 text-green-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF7D00]/10">
+              <Zap className="h-5 w-5 text-[#FF7D00]" />
             </div>
             <div>
-              <div className="text-sm text-gray-500">线索总产出</div>
-              <div className="text-xl font-bold text-gray-900">{totalLeads}</div>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">平均留资率</div>
-              <div className="text-xl font-bold text-gray-900">3.7%</div>
+              <div className="text-sm text-gray-500">当日总Token消耗</div>
+              <div className="text-xl font-bold text-gray-900">{(todayTokens / 1000000).toFixed(2)}M</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Charts Row */}
+      {/* Charts Row 1: Line Chart + Pie Chart */}
       <div className="grid grid-cols-2 gap-4">
-        {/* Chat Volume Trend */}
+        {/* Line Chart: 30-day trend */}
         <div className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-900 mb-4">各智能体对话量趋势</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">近30日对话&线索增长趋势</h3>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chatVolumeData}>
+              <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#8C97A9' }} />
-                <YAxis tick={{ fontSize: 12, fill: '#8C97A9' }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 12, fill: '#8C97A9' }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: '#8C97A9' }} />
                 <Tooltip
                   contentStyle={{
                     borderRadius: 8,
@@ -143,22 +150,21 @@ export default function AgentDashboardPage() {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="跨境电商顾问" fill="#FF7D00" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="工业设备专家" fill="#FFB366" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="本地门店助手" fill="#FFD699" radius={[2, 2, 0, 0]} />
-              </BarChart>
+                <Line yAxisId="left" type="monotone" dataKey="对话量" stroke="#FF7D00" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line yAxisId="right" type="monotone" dataKey="线索" stroke="#00B42A" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Token Consumption Pie */}
+        {/* Pie Chart: Industry share */}
         <div className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-900 mb-4">Token消耗分布</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">各行业Agent对话占比</h3>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={tokenConsumption}
+                  data={industryShare}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -166,12 +172,12 @@ export default function AgentDashboardPage() {
                   paddingAngle={2}
                   dataKey="value"
                 >
-                  {tokenConsumption.map((_, index) => (
+                  {industryShare.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value: number) => [`${(value / 1000).toFixed(0)}K Token`, '']}
+                  formatter={(value: number) => [`${value.toLocaleString()} 次对话`, '']}
                   contentStyle={{
                     borderRadius: 8,
                     border: '1px solid #e5e7eb',
@@ -184,54 +190,31 @@ export default function AgentDashboardPage() {
         </div>
       </div>
 
-      {/* Lead Production Table */}
+      {/* Bar Chart: Token consumption ranking */}
       <div className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
-        <h3 className="font-semibold text-gray-900 mb-4">线索产出排行</h3>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-100">
-              <th className="pb-3 text-left text-xs font-medium text-gray-500">排名</th>
-              <th className="pb-3 text-left text-xs font-medium text-gray-500">智能体</th>
-              <th className="pb-3 text-left text-xs font-medium text-gray-500">线索数</th>
-              <th className="pb-3 text-left text-xs font-medium text-gray-500">留资率</th>
-              <th className="pb-3 text-left text-xs font-medium text-gray-500">占比</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leadProduction
-              .sort((a, b) => b.leads - a.leads)
-              .map((item, index) => (
-                <tr key={item.agent} className="border-b border-gray-50">
-                  <td className="py-3">
-                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
-                      index === 0 ? 'bg-[#FF7D00] text-white' :
-                      index === 1 ? 'bg-[#FFB366] text-white' :
-                      index === 2 ? 'bg-[#FFD699] text-gray-700' :
-                      'bg-gray-100 text-gray-500'
-                    }`}>
-                      {index + 1}
-                    </span>
-                  </td>
-                  <td className="py-3 text-sm font-medium text-gray-900">{item.agent}</td>
-                  <td className="py-3 text-sm text-gray-700">{item.leads}</td>
-                  <td className="py-3 text-sm text-gray-700">{item.rate}%</td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 rounded-full bg-gray-100 w-24">
-                        <div
-                          className="h-2 rounded-full bg-[#FF7D00]"
-                          style={{ width: `${(item.leads / leadProduction[0].leads) * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {((item.leads / totalLeads) * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+        <h3 className="font-semibold text-gray-900 mb-4">各Agent Token消耗排行</h3>
+        <div className="h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={tokenRanking} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tick={{ fontSize: 12, fill: '#8C97A9' }} tickFormatter={(v) => `${v}K`} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#333' }} width={120} />
+              <Tooltip
+                formatter={(value: number) => [`${value}K Token`, '']}
+                contentStyle={{
+                  borderRadius: 8,
+                  border: '1px solid #e5e7eb',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+              />
+              <Bar dataKey="token" radius={[0, 4, 4, 0]}>
+                {tokenRanking.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={index === 0 ? '#FF7D00' : index === 1 ? '#FFB366' : '#FFD699'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

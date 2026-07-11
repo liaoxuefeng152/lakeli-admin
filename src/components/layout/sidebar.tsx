@@ -78,15 +78,16 @@ const aiMenus: MenuItem[] = [
 const agentMenus: MenuItem[] = [
   {
     key: 'agent',
-    label: 'Agent智能体管理',
+    label: '统一Agent智能体管理',
     icon: Cpu,
     path: '/agent',
     children: [
       { key: 'agent-repo', label: 'Agent资源仓库', path: '/agent' },
-      { key: 'agent-chats', label: 'Agent对话记录', path: '/agent/chats' },
-      { key: 'agent-migration', label: '扣子资产迁移', path: '/agent/migration' },
-      { key: 'agent-scheduling', label: 'AI调度&配额管控', path: '/agent/scheduling' },
-      { key: 'agent-dashboard', label: 'Agent数据看板', path: '/agent/dashboard' },
+      { key: 'agent-chats', label: '全平台对话记录查询', path: '/agent/chats' },
+      { key: 'agent-sandbox', label: 'Agent测试沙盒', path: '/agent/sandbox' },
+      { key: 'agent-migration', label: '扣子资产批量迁移工具', path: '/agent/migration' },
+      { key: 'agent-scheduling', label: 'AI调度与配额管控', path: '/agent/scheduling' },
+      { key: 'agent-dashboard', label: 'Agent专项数据看板', path: '/agent/dashboard' },
     ],
   },
 ];

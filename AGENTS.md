@@ -64,10 +64,12 @@ src/
 │   │       ├── wecom-archive/  # 企微会话存档
 │   │       └── feedback/       # 用户反馈统计
 │   │   └── agent/              # Agent智能体管理插件
-│   │       ├── chats/          # Agent对话记录
-│   │       ├── migration/      # 扣子资产迁移
-│   │       ├── scheduling/     # AI调度&配额管控
-│   │       └── dashboard/      # Agent数据看板
+│   │       ├── page.tsx        # Agent资源仓库（插件首页）
+│   │       ├── chats/          # 全平台对话记录查询
+│   │       ├── sandbox/        # Agent测试沙盒
+│   │       ├── migration/      # 扣子资产批量迁移工具
+│   │       ├── scheduling/     # AI调度与配额管控
+│   │       └── dashboard/      # Agent专项数据看板
 │   └── layout.tsx              # 根布局
 ├── components/
 │   ├── layout/                 # 布局组件
@@ -113,6 +115,12 @@ src/
 | `/geo/*` | GEO插件 | 域途GEO管理 |
 | `/ai-service/*` | AI客服插件 | 智推AI管理 |
 | `/agent/*` | Agent管理插件 | 智能体管理 |
+| `/agent` | Agent资源仓库 | 插件首页，表格布局管理Agent |
+| `/agent/chats` | 全平台对话记录查询 | 多条件筛选+对话快照 |
+| `/agent/sandbox` | Agent测试沙盒 | 运营测试智能体问答效果 |
+| `/agent/migration` | 扣子资产批量迁移 | 文件上传+导入日志 |
+| `/agent/scheduling` | AI调度与配额管控 | 多模型路由+限流配置 |
+| `/agent/dashboard` | Agent专项数据看板 | 图表+指标+导出 |
 
 ## 角色权限
 
