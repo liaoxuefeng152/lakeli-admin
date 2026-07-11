@@ -4,6 +4,8 @@ import { useState } from 'react';
 import {
   Plus, Search, Edit, Copy, MessageSquare, Power, Eye,
   Download, Upload, ChevronLeft, ChevronRight,
+  Image, Video, Globe, Code2, Search as SearchIcon, FileText,
+  Palette, Clapperboard, MapPin, Hash, Info,
 } from 'lucide-react';
 import { agents, type AgentInfo } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +26,19 @@ const knowledgeOptions = [
   { value: 'industry', label: '工业行业库' },
 ];
 
-const TABS = ['基础信息', 'Prompt人设配置', '知识库绑定', '规则配置', '附加配额限制'] as const;
+const TABS = ['基础信息', 'Prompt人设配置', '知识库绑定', '工具能力配置', '规则配置', '附加配额限制'] as const;
+
+const toolOptions = [
+  { value: 'text_to_image', label: '文生图', desc: '根据文字描述生成图片', icon: Image, category: '图像' },
+  { value: 'image_to_image', label: '图生图', desc: '基于参考图生成新图片', icon: Palette, category: '图像' },
+  { value: 'text_to_video', label: '文生视频', desc: '根据文字描述生成视频', icon: Video, category: '视频' },
+  { value: 'image_to_video', label: '图生视频', desc: '基于图片生成动态视频', icon: Clapperboard, category: '视频' },
+  { value: 'web_search', label: '联网搜索', desc: '实时搜索互联网获取最新信息', icon: SearchIcon, category: '搜索' },
+  { value: 'web_parse', label: '网页解析', desc: '抓取并解析指定URL的网页内容', icon: Globe, category: '搜索' },
+  { value: 'code_sandbox', label: '代码执行', desc: '在沙盒中执行代码完成计算/数据处理', icon: Code2, category: '代码' },
+  { value: 'geo_diagnostics', label: 'GEO诊断', desc: '调用GEO诊断能力分析网站AI搜索表现', icon: MapPin, category: '业务' },
+  { value: 'keyword_mining', label: '关键词挖掘', desc: '调用关键词挖掘能力生成SEO关键词', icon: Hash, category: '业务' },
+];
 
 export default function AgentRepoPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -326,7 +340,45 @@ export default function AgentRepoPage() {
               </div>
             )}
 
-            {/* Tab 4: 规则配置 */}
+            {/* Tab 4: 工具能力配置 */}
+            {activeTab === '工具能力配置' && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-500 mb-3">为该Agent选择可调用的工具能力，Agent在对话中将自动根据用户意图调用对应工具</p>
+                </div>
+                {/* Group by category */}
+                {['图像', '视频', '搜索', '代码', '业务'].map((category) => {
+                  const categoryTools = toolOptions.filter((t) => t.category === category);
+                  return (
+                    <div key={category}>
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">{category}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {categoryTools.map((tool) => (
+                          <label
+                            key={tool.value}
+                            className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-[#FF7D00]/30 cursor-pointer transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 mt-0.5 rounded accent-[#FF7D00]"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <tool.icon className="h-4 w-4 text-[#FF7D00]" />
+                                <span className="text-sm font-medium text-gray-700">{tool.label}</span>
+                              </div>
+                              <p className="text-xs text-gray-400 mt-0.5">{tool.desc}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Tab 5: 规则配置 */}
             {activeTab === '规则配置' && (
               <div className="space-y-4">
                 <div>
@@ -342,20 +394,14 @@ export default function AgentRepoPage() {
                     defaultValue={editingAgent?.leadGuideScripts || ''}
                   />
                 </div>
-                <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-gray-700">GEO工具开关</label>
-                  <button
-                    type="button"
-                    className={`relative h-5 w-9 rounded-full transition-colors ${editingAgent?.geoToolEnabled ? 'bg-[#FF7D00]' : 'bg-gray-200'}`}
-                  >
-                    <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${editingAgent?.geoToolEnabled ? 'left-[18px]' : 'left-0.5'}`} />
-                  </button>
-                  <span className="text-xs text-gray-500">开启后AI对话可调用诊断、关键词生成能力</span>
+                <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-100">
+                  <Info className="h-4 w-4 text-[#FF7D00] shrink-0 mt-0.5" />
+                  <span className="text-xs text-gray-500">工具能力已迁移至「工具能力配置」标签页，可在此统一管理Agent可调用的全部工具</span>
                 </div>
               </div>
             )}
 
-            {/* Tab 5: 附加配额限制 */}
+            {/* Tab 6: 附加配额限制 */}
             {activeTab === '附加配额限制' && (
               <div className="space-y-4">
                 <div>
