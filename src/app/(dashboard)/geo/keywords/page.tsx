@@ -1,21 +1,48 @@
 'use client';
 
-import { Search, Download } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { fetchGeoRecords } from '@/lib/services/admin-api';
+import { exportToCsv } from '@/lib/utils';
 
-const keywordRecords = [
-  { id: 'KW001', customer: '深圳跨境通科技有限公司', keyword: 'cross-border ecommerce solutions', difficulty: '中', searchVolume: 1200, date: '2026-07-10' },
-  { id: 'KW002', customer: '东莞精密工业设备有限公司', keyword: 'CNC precision machining', difficulty: '高', searchVolume: 3500, date: '2026-07-10' },
-  { id: 'KW003', customer: '珠海黄精生物科技有限公司', keyword: 'natural health supplements', difficulty: '低', searchVolume: 800, date: '2026-07-09' },
-  { id: 'KW004', customer: '深圳创新科技集团', keyword: 'AI powered analytics', difficulty: '高', searchVolume: 5200, date: '2026-07-09' },
-  { id: 'KW005', customer: '佛山外贸制造有限公司', keyword: 'OEM furniture manufacturer', difficulty: '中', searchVolume: 2100, date: '2026-07-08' },
-];
+interface KeywordRecord {
+  id: string;
+  customer: string;
+  keyword: string;
+  difficulty: string;
+  searchVolume: number;
+  date: string;
+}
 
 const difficultyColors: Record<string, string> = { '低': '#00B42A', '中': '#FF7D00', '高': '#F53F3F' };
 
 export default function GeoKeywordsPage() {
+  const [records, setRecords] = useState<KeywordRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setRecords(await fetchGeoRecords('keywords') as KeywordRecord[]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '加载失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = records.filter(
+    (r) => !search || r.keyword.includes(search) || r.customer.includes(search),
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -23,16 +50,27 @@ export default function GeoKeywordsPage() {
           <h1 className="text-xl font-bold text-gray-900">关键词挖掘记录</h1>
           <p className="text-sm text-gray-500 mt-1">AI挖掘的高价值关键词记录</p>
         </div>
-        <Button variant="outline"><Download className="mr-2 h-4 w-4" />导出</Button>
+        <Button variant="outline" onClick={() => exportToCsv('关键词挖掘记录.csv', ['ID', '客户', '关键词', '竞争难度', '搜索量', '挖掘时间'], filtered.map((r) => [r.id, r.customer, r.keyword, r.difficulty, r.searchVolume, r.date]))}><Download className="mr-2 h-4 w-4" />导出</Button>
       </div>
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="搜索关键词/客户" className="pl-10" />
+          <Input
+            placeholder="搜索关键词/客户"
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        <Button className="bg-[#0F52BA] hover:bg-[#0F52BA]/90">查询</Button>
+        <Button className="bg-[#0F52BA] hover:bg-[#0F52BA]/90" onClick={load} disabled={loading}>查询</Button>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}<Button variant="link" className="h-auto p-0 ml-2 text-red-700" onClick={load}>重试</Button>
+        </div>
+      )}
 
       <div className="rounded-xl bg-white border border-gray-100 shadow-sm overflow-hidden">
         <table className="w-full">
@@ -47,7 +85,11 @@ export default function GeoKeywordsPage() {
             </tr>
           </thead>
           <tbody>
-            {keywordRecords.map((r) => (
+            {loading ? (
+              <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-400">
+                <Loader2 className="h-5 w-5 animate-spin inline mr-2" />加载中...
+              </td></tr>
+            ) : filtered.map((r) => (
               <tr key={r.id} className="border-b border-gray-50 hover:bg-[#F0F5FF] transition-colors">
                 <td className="px-5 py-4 text-sm text-gray-500">{r.id}</td>
                 <td className="px-5 py-4 text-sm font-medium text-gray-900">{r.customer}</td>
@@ -61,6 +103,9 @@ export default function GeoKeywordsPage() {
                 <td className="px-5 py-4 text-sm text-gray-500">{r.date}</td>
               </tr>
             ))}
+            {!loading && filtered.length === 0 && (
+              <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-400">暂无关键词记录</td></tr>
+            )}
           </tbody>
         </table>
       </div>

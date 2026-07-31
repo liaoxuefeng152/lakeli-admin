@@ -1,18 +1,56 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Upload, Trash2, AlertTriangle, X } from 'lucide-react';
-import { blacklistItems } from '@/lib/mock-data';
-import type { BlacklistItem } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { Plus, Upload, Trash2, AlertTriangle, X, Loader2 } from 'lucide-react';
+import { fetchOutboundRecords, addBlacklist, deleteBlacklist, type OutboundBlacklistItem } from '@/lib/services/admin-api';
 
 export default function BlacklistPage() {
-  const [items, setItems] = useState<BlacklistItem[]>(blacklistItems);
+  const [items, setItems] = useState<OutboundBlacklistItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
+  const [newReason, setNewReason] = useState('');
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null);
 
-  const handleRemove = (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
-    setShowRemoveConfirm(null);
+  const loadItems = async () => {
+    const data = await fetchOutboundRecords('blacklist');
+    setItems(data as OutboundBlacklistItem[]);
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await loadItems();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const handleAdd = async () => {
+    if (!newPhone) return;
+    try {
+      await addBlacklist({ phone: newPhone, reason: newReason });
+      setNewPhone('');
+      setNewReason('');
+      setShowAddModal(false);
+      await loadItems();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    try {
+      await deleteBlacklist(id);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setShowRemoveConfirm(null);
+    }
   };
 
   const handleClearAll = () => {
@@ -35,7 +73,7 @@ export default function BlacklistPage() {
       {/* Actions */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">
             <Plus className="h-4 w-4" /> 手动添加
           </button>
           <button className="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-sm text-[#666] hover:bg-gray-50">
@@ -61,20 +99,23 @@ export default function BlacklistPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {loading && (
+              <tr><td colSpan={5} className="py-16 text-center text-sm text-[#999]"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />加载中...</td></tr>
+            )}
+            {!loading && items.length === 0 && (
+              <tr><td colSpan={5} className="py-16 text-center text-sm text-[#999]">黑名单为空</td></tr>
+            )}
+            {!loading && items.map((item) => (
               <tr key={item.id} className="border-b border-gray-50 text-sm hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium text-[#333]">{item.phone}</td>
                 <td className="px-4 py-3 text-[#666]">{item.reason}</td>
                 <td className="px-4 py-3 text-[#666]">{item.operator}</td>
                 <td className="px-4 py-3 text-[#999]">{item.createdAt}</td>
                 <td className="px-4 py-3">
-                  <button onClick={() => setShowRemoveConfirm(item.id)} className="text-xs text-[#1677FF] hover:underline">移出黑名单</button>
+                  <button onClick={() => setShowRemoveConfirm(item.id)} className="text-xs text-primary hover:underline">移出黑名单</button>
                 </td>
               </tr>
             ))}
-            {items.length === 0 && (
-              <tr><td colSpan={5} className="py-16 text-center text-sm text-[#999]">黑名单为空</td></tr>
-            )}
           </tbody>
         </table>
       </div>
@@ -90,16 +131,16 @@ export default function BlacklistPage() {
             <div className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm text-[#333]">手机号 <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="请输入手机号" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+                <input type="text" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="请输入手机号" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               </div>
               <div>
                 <label className="mb-1 block text-sm text-[#333]">拉黑原因 <span className="text-red-500">*</span></label>
-                <textarea placeholder="请输入拉黑原因" rows={3} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+                <textarea value={newReason} onChange={(e) => setNewReason(e.target.value)} placeholder="请输入拉黑原因" rows={3} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={() => setShowAddModal(false)} className="rounded-md border border-gray-200 px-4 py-2 text-sm text-[#666]">取消</button>
-              <button onClick={() => setShowAddModal(false)} className="rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">确认添加</button>
+              <button onClick={handleAdd} className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">确认添加</button>
             </div>
           </div>
         </div>
@@ -113,7 +154,7 @@ export default function BlacklistPage() {
             <p className="mb-6 text-sm text-[#666]">移出后该号码将可以接收外呼任务拨打。</p>
             <div className="flex justify-end gap-3">
               <button onClick={() => setShowRemoveConfirm(null)} className="rounded-md border border-gray-200 px-4 py-2 text-sm text-[#666]">取消</button>
-              <button onClick={() => handleRemove(showRemoveConfirm)} className="rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">确认移出</button>
+              <button onClick={() => handleRemove(showRemoveConfirm)} className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">确认移出</button>
             </div>
           </div>
         </div>

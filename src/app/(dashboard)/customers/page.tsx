@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Eye, Edit, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,23 +20,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { customers, orders, chatRecords, industryOptions } from '@/lib/mock-data';
+import { orders, chatRecords, industryOptions } from '@/lib/mock-data';
 import type { Customer } from '@/lib/mock-data';
+import { fetchCustomers } from '@/lib/services/admin-api';
+import { exportToCsv } from '@/lib/utils';
 
 export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [industryFilter, setIndustryFilter] = useState('all');
   const [showDetail, setShowDetail] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const filtered = customers.filter((c) => {
-    const matchSearch =
-      c.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.contact.includes(searchTerm) ||
-      c.phone.includes(searchTerm);
-    const matchIndustry = industryFilter === 'all' || c.industry === industryFilter;
-    return matchSearch && matchIndustry;
-  });
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetchCustomers({
+        search: searchTerm,
+        industry: industryFilter,
+        page: 1,
+        pageSize: 200,
+      });
+      setCustomers(res.data as Customer[]);
+    } catch (e) {
+      console.error('[Customers] load failed', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, industryFilter]);
+
+  // 搜索/筛选变化时带 300ms 防抖重新拉取
+  useEffect(() => {
+    const t = setTimeout(loadData, 300);
+    return () => clearTimeout(t);
+  }, [loadData]);
 
   const [currentTime, setCurrentTime] = useState<number>(0);
 
@@ -59,7 +77,7 @@ export default function CustomersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">全域客户档案中心</h1>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => exportToCsv('客户档案.csv', ['客户ID', '公司名称', '联系人', '电话', '行业', '当前套餐', '到期日', '负责销售', '注册时间'], customers.map((c) => [c.id, c.company, c.contact, c.phone, c.industry, c.currentPlan, c.expiryDate, c.salesPerson, c.registeredAt]))}>
           <Download className="mr-2 h-4 w-4" />
           批量导出
         </Button>
@@ -87,7 +105,7 @@ export default function CustomersPage() {
             ))}
           </SelectContent>
         </Select>
-        <Button className="bg-[#1677FF] hover:bg-[#1677FF]/90">查询</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => loadData()}>查询</Button>
         <Button variant="outline" onClick={() => { setSearchTerm(''); setIndustryFilter('all'); }}>重置</Button>
       </div>
 
@@ -107,13 +125,13 @@ export default function CustomersPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((customer) => (
+            {customers.map((customer) => (
               <tr key={customer.id} className="border-b border-gray-50 hover:bg-[#F0F5FF] transition-colors">
                 <td className="px-5 py-4 text-sm text-gray-500">{customer.id}</td>
                 <td className="px-5 py-4">
                   <button
                     onClick={() => handleViewDetail(customer)}
-                    className="text-sm font-medium text-[#1677FF] hover:text-[#1677FF]/80"
+                    className="text-sm font-medium text-primary hover:text-primary/80"
                   >
                     {customer.company}
                   </button>
@@ -153,12 +171,13 @@ export default function CustomersPage() {
           </DialogHeader>
           {selectedCustomer && (
             <Tabs defaultValue="basic" className="mt-2">
-              <TabsList className="grid grid-cols-5 w-full">
+              <TabsList className="grid grid-cols-6 w-full">
                 <TabsTrigger value="basic">基础信息</TabsTrigger>
                 <TabsTrigger value="orders">订单记录</TabsTrigger>
                 <TabsTrigger value="geo">GEO数据</TabsTrigger>
                 <TabsTrigger value="chats">AI对话</TabsTrigger>
                 <TabsTrigger value="leads">线索来源</TabsTrigger>
+                <TabsTrigger value="knowledge-engine">数据中台</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="mt-4">
@@ -191,6 +210,9 @@ export default function CustomersPage() {
               </TabsContent>
 
               <TabsContent value="orders" className="mt-4">
+                <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-1.5">
+                  <p className="text-xs text-amber-700">演示数据：未对接后端订单接口</p>
+                </div>
                 <div className="space-y-3">
                   {orders
                     .filter((o) => o.customer === selectedCustomer.company)
@@ -201,7 +223,7 @@ export default function CustomersPage() {
                           <div className="text-xs text-gray-500 mt-1">订单号: {order.id}</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-bold text-[#1677FF]">¥{order.amount.toLocaleString()}</div>
+                          <div className="text-sm font-bold text-primary">¥{order.amount.toLocaleString()}</div>
                           <div className="text-xs text-gray-500">到期: {order.expiryDate}</div>
                         </div>
                       </div>
@@ -213,6 +235,9 @@ export default function CustomersPage() {
               </TabsContent>
 
               <TabsContent value="geo" className="mt-4">
+                <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-1.5">
+                  <p className="text-xs text-amber-700">演示数据：客户维度 GEO 使用统计待后端聚合</p>
+                </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="rounded-lg border border-gray-100 p-4 text-center">
                     <div className="text-2xl font-bold text-[#0F52BA]">45</div>
@@ -230,6 +255,9 @@ export default function CustomersPage() {
               </TabsContent>
 
               <TabsContent value="chats" className="mt-4">
+                <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-1.5">
+                  <p className="text-xs text-amber-700">演示数据：未对接客户对话记录接口</p>
+                </div>
                 <div className="space-y-3">
                   {chatRecords
                     .filter((c) => c.customerId === selectedCustomer.id)
@@ -251,9 +279,29 @@ export default function CustomersPage() {
               </TabsContent>
 
               <TabsContent value="leads" className="mt-4">
+                <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-1.5">
+                  <p className="text-xs text-amber-700">演示数据：未对接 AI 客服留资接口</p>
+                </div>
                 <div className="rounded-lg border border-gray-100 p-6 text-center">
                   <p className="text-sm text-gray-500">线索来源: AI客服对话留资</p>
                   <p className="text-xs text-gray-400 mt-2">通过AI客服自动采集的客户留资信息</p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="knowledge-engine" className="mt-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="rounded-lg border border-gray-100 p-4 text-center">
+                    <div className="text-2xl font-bold text-[#13C2C2]">5,280</div>
+                    <div className="text-xs text-gray-500 mt-1">知识条目</div>
+                  </div>
+                  <div className="rounded-lg border border-gray-100 p-4 text-center">
+                    <div className="text-2xl font-bold text-[#13C2C2]">310</div>
+                    <div className="text-xs text-gray-500 mt-1">GEO内容</div>
+                  </div>
+                  <div className="rounded-lg border border-gray-100 p-4 text-center">
+                    <div className="text-2xl font-bold text-[#13C2C2]">92.1%</div>
+                    <div className="text-xs text-gray-500 mt-1">问答命中率</div>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>

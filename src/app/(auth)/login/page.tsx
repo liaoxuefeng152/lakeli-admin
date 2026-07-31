@@ -3,9 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,21 +26,20 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    // Simulate login
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const res = await login(username, password);
+    setLoading(false);
 
-    if (username === 'admin' && password === 'admin123') {
+    if (res.ok) {
       router.push('/dashboard');
     } else {
-      setError('账号或密码错误');
+      setError(res.error || '登录失败');
     }
-    setLoading(false);
   };
 
   return (
     <div className="flex h-screen">
       {/* Left: Brand Area */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-gradient-to-br from-[#0a2a6e] via-[#1677FF] to-[#0F52BA]">
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-gradient-to-br from-[#0a2a6e] via-primary to-[#0F52BA]">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 h-64 w-64 rounded-full bg-white/20 blur-3xl" />
           <div className="absolute bottom-32 right-16 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
@@ -83,7 +85,7 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px]">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1677FF]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
               <span className="text-lg font-bold text-white">L</span>
             </div>
             <span className="text-xl font-semibold text-gray-900">拉克力后台管理系统</span>
@@ -94,15 +96,15 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">管理员账号</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">账号 / 邮箱</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="请输入管理员账号"
-                  className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition-colors focus:border-[#1677FF] focus:bg-white focus:ring-2 focus:ring-[#1677FF]/10"
+                  placeholder="请输入账号或邮箱"
+                  className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10"
                 />
               </div>
             </div>
@@ -116,7 +118,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="请输入登录密码"
-                  className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-10 text-sm outline-none transition-colors focus:border-[#1677FF] focus:bg-white focus:ring-2 focus:ring-[#1677FF]/10"
+                  className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-10 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10"
                 />
                 <button
                   type="button"
@@ -134,11 +136,15 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 accent-[#1677FF]"
+                  className="h-4 w-4 rounded border-gray-300 accent-primary"
                 />
                 记住账号
               </label>
-              <button type="button" className="text-sm text-[#1677FF] hover:text-[#1677FF]/80">
+              <button
+                type="button"
+                className="text-sm text-primary hover:text-primary/80"
+                onClick={() => toast('演示环境', { description: '请联系管理员重置登录密码' })}
+              >
                 忘记密码?
               </button>
             </div>
@@ -152,14 +158,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="h-11 w-full rounded-lg bg-[#1677FF] text-sm font-medium text-white transition-colors hover:bg-[#1677FF]/90 disabled:opacity-60"
+              className="h-11 w-full rounded-lg bg-primary text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
               {loading ? '登录中...' : '登 录'}
             </button>
           </form>
 
           <p className="mt-8 text-center text-xs text-gray-400">
-            测试账号: admin / admin123
+            演示账号: admin@lakeli.com / admin123（超管） · operator@lakeli.com / operator123（运营） · sales@lakeli.com / sales123（销售）
           </p>
         </div>
       </div>

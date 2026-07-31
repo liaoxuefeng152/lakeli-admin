@@ -1,19 +1,31 @@
 'use client';
 
-import { Search, Download, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Download, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-
-const wecomRecords = [
-  { id: 'WC001', customer: '深圳跨境通科技有限公司', contact: '陈总', messageCount: 24, lastMessage: '请问GEO旗舰版支持哪些监测平台？', date: '2026-07-10 16:30', status: 'active' },
-  { id: 'WC002', customer: '广州本地生活服务有限公司', contact: '黄总', messageCount: 8, lastMessage: '好的，我考虑一下', date: '2026-07-10 14:20', status: 'active' },
-  { id: 'WC003', customer: '东莞精密工业设备有限公司', contact: '李经理', messageCount: 15, lastMessage: '诊断报告已收到，谢谢', date: '2026-07-10 11:45', status: 'archived' },
-  { id: 'WC004', customer: '佛山外贸制造有限公司', contact: '何总', messageCount: 32, lastMessage: '下周方便安排线上演示吗？', date: '2026-07-09 17:10', status: 'active' },
-  { id: 'WC005', customer: '深圳前海金融服务公司', contact: '吴总', messageCount: 6, lastMessage: '发一份方案给我看看', date: '2026-07-09 10:30', status: 'archived' },
-];
+import { fetchAiServiceRecords, type AiWecomArchive } from '@/lib/services/admin-api';
+import { exportToCsv } from '@/lib/utils';
 
 export default function WecomArchivePage() {
+  const [wecomRecords, setWecomRecords] = useState<AiWecomArchive[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchAiServiceRecords('wecom-archives');
+        setWecomRecords(data as AiWecomArchive[]);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '加载失败');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -21,10 +33,10 @@ export default function WecomArchivePage() {
           <h1 className="text-xl font-bold text-gray-900">企微会话存档查询</h1>
           <p className="text-sm text-gray-500 mt-1">查看企业微信中的客户会话记录</p>
         </div>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          导出记录
-        </Button>
+          <Button variant="outline" onClick={() => exportToCsv('企微会话存档.csv', ['客户', '联系人', '消息数', '最新消息', '时间', '状态'], wecomRecords.map((r) => [r.customer, r.contact, r.messageCount, r.lastMessage, r.date, r.status]))}>
+            <Download className="mr-2 h-4 w-4" />
+            导出记录
+          </Button>
       </div>
 
       <div className="flex items-center gap-3">
@@ -34,6 +46,8 @@ export default function WecomArchivePage() {
         </div>
         <Button className="bg-[#00B42A] hover:bg-[#00B42A]/90">查询</Button>
       </div>
+
+      {error && <div className="text-sm text-[#F53F3F]">{error}</div>}
 
       <div className="rounded-xl bg-white border border-gray-100 shadow-sm overflow-hidden">
         <table className="w-full">
@@ -49,26 +63,42 @@ export default function WecomArchivePage() {
             </tr>
           </thead>
           <tbody>
-            {wecomRecords.map((r) => (
-              <tr key={r.id} className="border-b border-gray-50 hover:bg-[#F0FFF4] transition-colors">
-                <td className="px-5 py-4 text-sm font-medium text-gray-900">{r.customer}</td>
-                <td className="px-5 py-4 text-sm text-gray-600">{r.contact}</td>
-                <td className="px-5 py-4 text-sm text-gray-600">{r.messageCount} 条</td>
-                <td className="px-5 py-4 text-sm text-gray-500 max-w-[250px] truncate">{r.lastMessage}</td>
-                <td className="px-5 py-4 text-sm text-gray-500">{r.date}</td>
-                <td className="px-5 py-4">
-                  <Badge variant={r.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                    {r.status === 'active' ? '进行中' : '已归档'}
-                  </Badge>
-                </td>
-                <td className="px-5 py-4 text-right">
-                  <Button variant="ghost" size="sm">
-                    <Eye className="h-3.5 w-3.5 mr-1" />
-                    查看
-                  </Button>
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center text-gray-400">
+                  <Loader2 className="inline h-4 w-4 animate-spin mr-2" />加载中...
                 </td>
               </tr>
-            ))}
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center text-[#F53F3F]">{error}</td>
+              </tr>
+            ) : wecomRecords.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center text-gray-400">暂无数据</td>
+              </tr>
+            ) : (
+              wecomRecords.map((r) => (
+                <tr key={r.id} className="border-b border-gray-50 hover:bg-[#F0FFF4] transition-colors">
+                  <td className="px-5 py-4 text-sm font-medium text-gray-900">{r.customer}</td>
+                  <td className="px-5 py-4 text-sm text-gray-600">{r.contact}</td>
+                  <td className="px-5 py-4 text-sm text-gray-600">{r.messageCount} 条</td>
+                  <td className="px-5 py-4 text-sm text-gray-500 max-w-[250px] truncate">{r.lastMessage}</td>
+                  <td className="px-5 py-4 text-sm text-gray-500">{r.date}</td>
+                  <td className="px-5 py-4">
+                    <Badge variant={r.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                      {r.status === 'active' ? '进行中' : '已归档'}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <Button variant="ghost" size="sm">
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      查看
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

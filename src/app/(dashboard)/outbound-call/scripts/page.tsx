@@ -1,15 +1,28 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Eye, X, ToggleLeft, ToggleRight } from 'lucide-react';
-import { scriptScenes } from '@/lib/mock-data';
-import type { ScriptScene } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Eye, X, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import { fetchOutboundRecords, type OutboundScriptScene } from '@/lib/services/admin-api';
 
 export default function ScriptsPage() {
-  const [scenes, setScenes] = useState<ScriptScene[]>(scriptScenes);
+  const [scenes, setScenes] = useState<OutboundScriptScene[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingScene, setEditingScene] = useState<ScriptScene | null>(null);
+  const [editingScene, setEditingScene] = useState<OutboundScriptScene | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await fetchOutboundRecords('script-scenes');
+        setScenes(s as OutboundScriptScene[]);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const handleToggle = (id: string) => {
     setScenes(prev => prev.map(s => s.id === id ? { ...s, status: s.status === '启用' ? '禁用' : '启用' } : s));
@@ -20,7 +33,7 @@ export default function ScriptsPage() {
     setShowDeleteConfirm(null);
   };
 
-  const handleEdit = (scene: ScriptScene) => {
+  const handleEdit = (scene: OutboundScriptScene) => {
     setEditingScene(scene);
     setShowEditModal(true);
   };
@@ -39,7 +52,7 @@ export default function ScriptsPage() {
 
       {/* Actions */}
       <div className="mb-4 flex items-center justify-between">
-        <button onClick={handleCreate} className="flex items-center gap-1.5 rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">
+        <button onClick={handleCreate} className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">
           <Plus className="h-4 w-4" /> 新增场景
         </button>
         <span className="text-xs text-[#999]">共 {scenes.length} 个场景</span>
@@ -60,7 +73,13 @@ export default function ScriptsPage() {
             </tr>
           </thead>
           <tbody>
-            {scenes.map((scene) => (
+            {loading && (
+              <tr><td colSpan={7} className="py-16 text-center text-sm text-[#999]"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />加载中...</td></tr>
+            )}
+            {!loading && scenes.length === 0 && (
+              <tr><td colSpan={7} className="py-16 text-center text-sm text-[#999]">暂无话术场景</td></tr>
+            )}
+            {!loading && scenes.map((scene) => (
               <tr key={scene.id} className="border-b border-gray-50 text-sm hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium text-[#333]">{scene.name}</td>
                 <td className="px-4 py-3 font-mono text-xs text-[#666]">{scene.instanceId}</td>
@@ -74,7 +93,7 @@ export default function ScriptsPage() {
                 <td className="px-4 py-3 text-[#999]">{scene.createdAt.split(' ')[0]}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => handleEdit(scene)} className="flex items-center gap-1 text-xs text-[#1677FF] hover:underline">
+                    <button onClick={() => handleEdit(scene)} className="flex items-center gap-1 text-xs text-primary hover:underline">
                       <Edit2 className="h-3 w-3" /> 编辑
                     </button>
                     <button onClick={() => handleToggle(scene.id)} className="flex items-center gap-1 text-xs text-[#FF7D00] hover:underline">
@@ -106,30 +125,30 @@ export default function ScriptsPage() {
             <div className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm text-[#333]">场景名称 <span className="text-red-500">*</span></label>
-                <input type="text" defaultValue={editingScene?.name} placeholder="请输入场景名称" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+                <input type="text" defaultValue={editingScene?.name} placeholder="请输入场景名称" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1 block text-sm text-[#333]">阿里云实例ID <span className="text-red-500">*</span></label>
-                  <input type="text" defaultValue={editingScene?.instanceId} placeholder="InstanceId" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+                  <input type="text" defaultValue={editingScene?.instanceId} placeholder="InstanceId" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm text-[#333]">阿里云脚本ID <span className="text-red-500">*</span></label>
-                  <input type="text" defaultValue={editingScene?.scriptId} placeholder="ScriptId" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+                  <input type="text" defaultValue={editingScene?.scriptId} placeholder="ScriptId" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
                 </div>
               </div>
               <div>
                 <label className="mb-1 block text-sm text-[#333]">开场推销话术 <span className="text-red-500">*</span></label>
-                <textarea defaultValue={editingScene?.openingScript} placeholder="请输入AI接通后的开场白" rows={3} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+                <textarea defaultValue={editingScene?.openingScript} placeholder="请输入AI接通后的开场白" rows={3} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               </div>
               <div>
                 <label className="mb-1 block text-sm text-[#333]">结束语</label>
-                <textarea defaultValue={editingScene?.closingScript} placeholder="请输入结束语" rows={2} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+                <textarea defaultValue={editingScene?.closingScript} placeholder="请输入结束语" rows={2} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               </div>
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <label className="text-sm text-[#333]">常见问答配置</label>
-                  <button className="text-xs text-[#1677FF] hover:underline">+ 添加问答</button>
+                  <button className="text-xs text-primary hover:underline">+ 添加问答</button>
                 </div>
                 <div className="space-y-2">
                   <div className="flex gap-2">
@@ -145,7 +164,7 @@ export default function ScriptsPage() {
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={() => setShowEditModal(false)} className="rounded-md border border-gray-200 px-4 py-2 text-sm text-[#666]">取消</button>
-              <button onClick={() => setShowEditModal(false)} className="rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">保存</button>
+              <button onClick={() => setShowEditModal(false)} className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">保存</button>
             </div>
           </div>
         </div>

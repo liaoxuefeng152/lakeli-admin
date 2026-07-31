@@ -1,15 +1,29 @@
 'use client';
 
-import { useState } from 'react';
-import { Save, RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { outboundCallConfig } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { Save, RefreshCw, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { fetchOutboundConfig, updateOutboundConfig, type OutboundConfig } from '@/lib/services/admin-api';
 
 export default function OutboundConfigPage() {
-  const [config, setConfig] = useState(outboundCallConfig);
+  const [config, setConfig] = useState<OutboundConfig | null>(null);
+  const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'fail' | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const c = await fetchOutboundConfig();
+        setConfig(c);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const handleTest = () => {
     setTesting(true);
@@ -20,13 +34,18 @@ export default function OutboundConfigPage() {
     }, 2000);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!config) return;
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      await updateOutboundConfig(config);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    }, 1000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const statusConfig = {
@@ -35,8 +54,10 @@ export default function OutboundConfigPage() {
     '连接失败': { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: '接口连接失败' },
   };
 
-  const currentStatus = statusConfig[config.status];
+  const currentStatus = statusConfig[(config?.status ?? '未配置') as keyof typeof statusConfig];
   const StatusIcon = currentStatus.icon;
+
+  if (loading || !config) return (<div className="p-6 text-sm text-gray-400">加载中...</div>);
 
   return (
     <div className="p-6">
@@ -72,41 +93,41 @@ export default function OutboundConfigPage() {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="mb-1 block text-sm text-[#333]">AccessKey ID <span className="text-red-500">*</span></label>
-              <input type="text" value={config.accessKeyId} onChange={(e) => setConfig({ ...config, accessKeyId: e.target.value })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+              <input type="text" value={config.accessKeyId} onChange={(e) => setConfig({ ...config, accessKeyId: e.target.value })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               <p className="mt-1 text-xs text-[#999]">阿里云RAM用户的AccessKey ID</p>
             </div>
             <div>
               <label className="mb-1 block text-sm text-[#333]">AccessKey Secret <span className="text-red-500">*</span></label>
-              <input type="password" value={config.accessKeySecret} onChange={(e) => setConfig({ ...config, accessKeySecret: e.target.value })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+              <input type="password" value={config.accessKeySecret} onChange={(e) => setConfig({ ...config, accessKeySecret: e.target.value })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               <p className="mt-1 text-xs text-[#999]">阿里云RAM用户的AccessKey Secret</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="mb-1 block text-sm text-[#333]">外呼主号码 <span className="text-red-500">*</span></label>
-              <input type="text" value={config.outboundPhone} onChange={(e) => setConfig({ ...config, outboundPhone: e.target.value })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+              <input type="text" value={config.outboundPhone} onChange={(e) => setConfig({ ...config, outboundPhone: e.target.value })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               <p className="mt-1 text-xs text-[#999]">阿里云购买的正规外呼号码</p>
             </div>
             <div>
               <label className="mb-1 block text-sm text-[#333]">回调地址（HTTPS）<span className="text-red-500">*</span></label>
-              <input type="text" value={config.callbackUrl} onChange={(e) => setConfig({ ...config, callbackUrl: e.target.value })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+              <input type="text" value={config.callbackUrl} onChange={(e) => setConfig({ ...config, callbackUrl: e.target.value })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               <p className="mt-1 text-xs text-[#999]">接收阿里云通话结果回调的HTTPS地址</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="mb-1 block text-sm text-[#333]">接口超时时间（秒）</label>
-              <input type="number" value={config.timeout} onChange={(e) => setConfig({ ...config, timeout: Number(e.target.value) })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+              <input type="number" value={config.timeout} onChange={(e) => setConfig({ ...config, timeout: Number(e.target.value) })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
             </div>
             <div>
               <label className="mb-1 block text-sm text-[#333]">失败重试次数</label>
-              <input type="number" value={config.retryCount} onChange={(e) => setConfig({ ...config, retryCount: Number(e.target.value) })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+              <input type="number" value={config.retryCount} onChange={(e) => setConfig({ ...config, retryCount: Number(e.target.value) })} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
             </div>
           </div>
         </div>
 
         <div className="mt-8 flex items-center gap-3">
-          <button onClick={handleSave} className="flex items-center gap-1.5 rounded-md bg-[#1677FF] px-6 py-2 text-sm text-white hover:bg-[#4096FF]">
+          <button onClick={handleSave} className="flex items-center gap-1.5 rounded-md bg-primary px-6 py-2 text-sm text-white hover:bg-[#4096FF]">
             <Save className="h-4 w-4" />
             {saving ? '保存中...' : '保存配置'}
           </button>
@@ -124,7 +145,7 @@ export default function OutboundConfigPage() {
 
       {/* Help Info */}
       <div className="mt-6 rounded-lg bg-blue-50 p-4">
-        <h4 className="mb-2 text-sm font-medium text-[#1677FF]">配置说明</h4>
+        <h4 className="mb-2 text-sm font-medium text-primary">配置说明</h4>
         <ul className="space-y-1 text-xs text-[#666]">
           <li>1. 请确保阿里云账号已完成实名认证和语音资质审核</li>
           <li>2. AccessKey需要具有智能外呼相关API调用权限</li>

@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+
 const nextConfig: NextConfig = {
   // outputFileTracingRoot: path.resolve(__dirname, '../../'),  // Uncomment and add 'import path from "path"' if needed
   /* config options here */
@@ -12,6 +14,15 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  // 将 /api/* 代理到统一后端 lakeli-app-xc
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${API_URL}/api/:path*`,
+      },
+    ];
   },
 };
 

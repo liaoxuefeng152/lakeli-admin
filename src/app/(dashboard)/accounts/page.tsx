@@ -1,218 +1,172 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Search, MoreHorizontal, Edit, Ban, KeyRound, Eye } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { admins, roleLabels } from '@/lib/mock-data';
-import type { Admin } from '@/lib/mock-data';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { UserPlus, Search, Shield, Zap, MessageSquare, Clock, Trash2, Edit3 } from 'lucide-react';
+import { fetchUsers, createUser, updateUser, deleteUser, UserItem } from '@/lib/services/admin-api';
+
+const roleBadge: Record<string, string> = {
+  admin: 'bg-red-100 text-red-700', user: 'bg-blue-100 text-blue-700', editor: 'bg-green-100 text-green-700',
+};
 
 export default function AccountsPage() {
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showViewDialog, setShowViewDialog] = useState(false);
-  const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editUser, setEditUser] = useState<UserItem | null>(null);
+  const [form, setForm] = useState({ email: '', password: '', name: '', role: 'user' });
 
-  const filteredAdmins = admins.filter((a) =>
-    a.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const load = (p = page, s = search) => {
+    setLoading(true);
+    fetchUsers({ page: p, pageSize: 20, search: s })
+      .then(r => { setUsers(r.data); setTotal(r.total); })
+      .catch(e => toast.error('加载失败: ' + e.message))
+      .finally(() => setLoading(false));
+  };
 
-  const handleView = (admin: Admin) => {
-    setSelectedAdmin(admin);
-    setShowViewDialog(true);
+  useEffect(() => { load(); }, []);
+
+  const handleSearch = () => { setPage(1); load(1, search); };
+
+  const handleCreate = async () => {
+    try {
+      await createUser(form);
+      toast.success('用户创建成功');
+      setShowCreate(false);
+      setForm({ email: '', password: '', name: '', role: 'user' });
+      load();
+    } catch (e) { toast.error('创建失败: ' + (e as Error).message); }
+  };
+
+  const handleEdit = async () => {
+    if (!editUser) return;
+    try {
+      await updateUser(editUser.id, { name: form.name, role: form.role });
+      toast.success('更新成功');
+      setShowEdit(false);
+      load();
+    } catch (e) { toast.error('更新失败: ' + (e as Error).message); }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`确定删除用户「${name}」？此操作不可恢复。`)) return;
+    try { await deleteUser(id); toast.success('已删除'); load(); }
+    catch (e) { toast.error('删除失败: ' + (e as Error).message); }
+  };
+
+  const openEdit = (u: UserItem) => {
+    setEditUser(u);
+    setForm({ email: u.email, password: '', name: u.name || '', role: u.role });
+    setShowEdit(true);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">账号与权限管理</h1>
-        <Button onClick={() => setShowAddDialog(true)} className="bg-[#1677FF] hover:bg-[#1677FF]/90">
-          <Plus className="mr-2 h-4 w-4" />
-          新增管理员
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            placeholder="搜索账号名称..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+        <div>
+          <h1 className="text-2xl font-bold">用户管理</h1>
+          <p className="text-sm text-gray-500 mt-1">共 {total} 位用户</p>
+        </div>
+        <div className="flex gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input placeholder="搜索用户名/邮箱..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key==='Enter' && handleSearch()} className="pl-9 w-60" />
+          </div>
+          <Button onClick={() => { setForm({ email: '', password: '', name: '', role: 'user' }); setShowCreate(true); }} className="bg-primary">
+            <UserPlus className="mr-2 h-4 w-4" />新增用户
+          </Button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl bg-white border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50/50">
-              <th className="px-5 py-3.5 text-left text-xs font-medium text-gray-500 uppercase">账号名称</th>
-              <th className="px-5 py-3.5 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
-              <th className="px-5 py-3.5 text-left text-xs font-medium text-gray-500 uppercase">数据权限</th>
-              <th className="px-5 py-3.5 text-left text-xs font-medium text-gray-500 uppercase">创建时间</th>
-              <th className="px-5 py-3.5 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-              <th className="px-5 py-3.5 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAdmins.map((admin) => (
-              <tr key={admin.id} className="border-b border-gray-50 hover:bg-[#F0F5FF] transition-colors">
-                <td className="px-5 py-4 text-sm font-medium text-gray-900">{admin.name}</td>
-                <td className="px-5 py-4">
-                  <Badge variant="secondary" className="text-xs">
-                    {roleLabels[admin.role]}
-                  </Badge>
-                </td>
-                <td className="px-5 py-4 text-sm text-gray-600">{admin.dataScope}</td>
-                <td className="px-5 py-4 text-sm text-gray-500">{admin.createdAt}</td>
-                <td className="px-5 py-4">
-                  <Badge variant={admin.status === 'active' ? 'default' : 'destructive'} className="text-xs">
-                    {admin.status === 'active' ? '正常' : '已禁用'}
-                  </Badge>
-                </td>
-                <td className="px-5 py-4">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => handleView(admin)}>
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <KeyRound className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-[#F53F3F] hover:text-[#F53F3F]">
-                      <Ban className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </td>
+      <Card>
+        <CardContent className="p-0">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b bg-gray-50 text-left text-sm text-gray-500">
+                <th className="py-3 px-4">用户</th>
+                <th className="py-3 px-4">角色</th>
+                <th className="py-3 px-4 text-right">Token消耗</th>
+                <th className="py-3 px-4 text-right">会话数</th>
+                <th className="py-3 px-4">注册时间</th>
+                <th className="py-3 px-4 text-right">操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {loading && <tr><td colSpan={6} className="p-8 text-center text-gray-400">加载中...</td></tr>}
+              {!loading && users.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">暂无用户</td></tr>}
+              {users.map(u => (
+                <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50">
+                  <td className="py-3 px-4">
+                    <div className="font-medium">{u.name || '未命名'}</div>
+                    <div className="text-xs text-gray-400">{u.email}</div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <Badge className={roleBadge[u.role] || roleBadge.user}>{u.role}</Badge>
+                  </td>
+                  <td className="py-3 px-4 text-right text-sm">
+                    <span className="flex items-center justify-end gap-1"><Zap className="h-3 w-3 text-yellow-500"/>{(u.total_tokens||0).toLocaleString()}</span>
+                  </td>
+                  <td className="py-3 px-4 text-right text-sm">
+                    <span className="flex items-center justify-end gap-1"><MessageSquare className="h-3 w-3 text-blue-500"/>{u.session_count||0}</span>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-500">
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/>{new Date(u.created_at).toLocaleDateString('zh-CN')}</span>
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(u)}><Edit3 className="h-3.5 w-3.5"/></Button>
+                    <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(u.id, u.name)}><Trash2 className="h-3.5 w-3.5"/></Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
 
-      {/* Add Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>新增后台管理员</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>账号</Label>
-                <Input placeholder="请输入账号" />
-              </div>
-              <div className="space-y-2">
-                <Label>密码</Label>
-                <Input type="password" placeholder="请输入密码" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>角色</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="请选择角色" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(roleLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
+      {/* 创建弹窗 */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>新增用户</DialogTitle></DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div><label className="text-sm font-medium">邮箱</label><Input value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="user@example.com"/></div>
+            <div><label className="text-sm font-medium">密码</label><Input type="password" value={form.password} onChange={e=>setForm(p=>({...p,password:e.target.value}))} placeholder="至少6位"/></div>
+            <div><label className="text-sm font-medium">名称</label><Input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="用户名称"/></div>
+            <div><label className="text-sm font-medium">角色</label>
+              <Select value={form.role} onValueChange={v=>setForm(p=>({...p,role:v}))}>
+                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectContent><SelectItem value="user">普通用户</SelectItem><SelectItem value="admin">管理员</SelectItem></SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>数据权限范围</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="请选择数据权限" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部数据</SelectItem>
-                  <SelectItem value="own">仅自己分配客户</SelectItem>
-                  <SelectItem value="industry">按行业分配</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>可访问模块</Label>
-              <div className="flex flex-wrap gap-2">
-                {['客户管理', '线索管理', '订单管理', '知识库', '企微配置', '数据看板', 'GEO模块', 'AI客服模块'].map((m) => (
-                  <label key={m} className="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50">
-                    <input type="checkbox" className="accent-[#1677FF]" />
-                    {m}
-                  </label>
-                ))}
-              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>取消</Button>
-            <Button className="bg-[#1677FF] hover:bg-[#1677FF]/90" onClick={() => setShowAddDialog(false)}>保存</Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={()=>setShowCreate(false)}>取消</Button><Button onClick={handleCreate} disabled={!form.email||!form.password}>创建</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* View Dialog */}
-      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>管理员详情</DialogTitle>
-          </DialogHeader>
-          {selectedAdmin && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <span className="text-xs text-gray-500">账号名称</span>
-                  <p className="text-sm font-medium">{selectedAdmin.name}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-gray-500">角色</span>
-                  <p className="text-sm font-medium">{roleLabels[selectedAdmin.role]}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-gray-500">数据权限</span>
-                  <p className="text-sm font-medium">{selectedAdmin.dataScope}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-gray-500">创建时间</span>
-                  <p className="text-sm font-medium">{selectedAdmin.createdAt}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-gray-500">状态</span>
-                  <p className="text-sm font-medium">{selectedAdmin.status === 'active' ? '正常' : '已禁用'}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-gray-500">可访问模块</span>
-                  <p className="text-sm font-medium">{selectedAdmin.modules.join('、')}</p>
-                </div>
-              </div>
+      {/* 编辑弹窗 */}
+      <Dialog open={showEdit} onOpenChange={setShowEdit}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>编辑用户</DialogTitle></DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div><label className="text-sm font-medium">邮箱</label><Input value={form.email} disabled className="bg-gray-50"/></div>
+            <div><label className="text-sm font-medium">名称</label><Input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
+            <div><label className="text-sm font-medium">角色</label>
+              <Select value={form.role} onValueChange={v=>setForm(p=>({...p,role:v}))}>
+                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectContent><SelectItem value="user">普通用户</SelectItem><SelectItem value="admin">管理员</SelectItem></SelectContent>
+              </Select>
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowViewDialog(false)}>关闭</Button>
-          </DialogFooter>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={()=>setShowEdit(false)}>取消</Button><Button onClick={handleEdit}>保存</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

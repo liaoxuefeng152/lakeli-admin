@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Download, Users, Eye, Edit, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,8 +22,10 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { leads, industryOptions } from '@/lib/mock-data';
+import { industryOptions } from '@/lib/mock-data';
 import type { Lead } from '@/lib/mock-data';
+import { fetchLeads } from '@/lib/services/admin-api';
+import { exportToCsv } from '@/lib/utils';
 
 const intentColors: Record<string, string> = {
   high: '#F53F3F',
@@ -49,6 +51,34 @@ export default function LeadsPage() {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showFollowDialog, setShowFollowDialog] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [intentFilter, setIntentFilter] = useState('all');
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetchLeads({
+        search: searchTerm,
+        source: sourceFilter,
+        intentLevel: intentFilter,
+        page: 1,
+        pageSize: 200,
+      });
+      setLeads(res.data as Lead[]);
+    } catch (e) {
+      console.error('[Leads] load failed', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, sourceFilter, intentFilter]);
+
+  useEffect(() => {
+    const t = setTimeout(loadData, 300);
+    return () => clearTimeout(t);
+  }, [loadData]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) =>
@@ -59,17 +89,35 @@ export default function LeadsPage() {
     setSelected((prev) => (prev.length === leads.length ? [] : leads.map((l) => l.id)));
   };
 
+  const handleExport = () => {
+    const rowsToExport = selected.length > 0 ? leads.filter((l) => selected.includes(l.id)) : leads;
+    exportToCsv(
+      '线索数据.csv',
+      ['线索ID', '手机号', '公司', '行业', '意向等级', '来源', '分配销售', '跟进状态'],
+      rowsToExport.map((l) => [
+        l.id,
+        l.phone,
+        l.company,
+        l.industry,
+        intentLabels[l.intentLevel],
+        l.source,
+        l.assignedTo || '-',
+        statusLabels[l.followUpStatus],
+      ])
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">全域线索管理池</h1>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             批量导出
           </Button>
           <Button
-            className="bg-[#1677FF] hover:bg-[#1677FF]/90"
+            className="bg-primary hover:bg-primary/90"
             disabled={selected.length === 0}
             onClick={() => setShowAssignDialog(true)}
           >
@@ -83,29 +131,39 @@ export default function LeadsPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative max-w-xs flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="搜索手机号/公司名" className="pl-10" />
+          <Input
+            placeholder="搜索手机号/公司名"
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-        <Select>
+        <Select value={sourceFilter} onValueChange={setSourceFilter}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="线索来源" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ai">AI客服留资</SelectItem>
-            <SelectItem value="offline">线下陌拜</SelectItem>
+            <SelectItem value="all">全部来源</SelectItem>
+            <SelectItem value="AI客服留资">AI客服留资</SelectItem>
+            <SelectItem value="线下陌拜">线下陌拜</SelectItem>
           </SelectContent>
         </Select>
-        <Select>
+        <Select value={intentFilter} onValueChange={setIntentFilter}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="意向等级" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">全部意向</SelectItem>
             <SelectItem value="high">高意向</SelectItem>
             <SelectItem value="medium">普通</SelectItem>
             <SelectItem value="low">无意向</SelectItem>
           </SelectContent>
         </Select>
-        <Button className="bg-[#1677FF] hover:bg-[#1677FF]/90">查询</Button>
-        <Button variant="outline">重置</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => loadData()}>查询</Button>
+        <Button
+          variant="outline"
+          onClick={() => { setSearchTerm(''); setSourceFilter('all'); setIntentFilter('all'); }}
+        >重置</Button>
       </div>
 
       {/* Table */}
@@ -192,7 +250,7 @@ export default function LeadsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAssignDialog(false)}>取消</Button>
-            <Button className="bg-[#1677FF] hover:bg-[#1677FF]/90" onClick={() => setShowAssignDialog(false)}>确认分配</Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={() => setShowAssignDialog(false)}>确认分配</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -231,7 +289,7 @@ export default function LeadsPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowFollowDialog(false)}>取消</Button>
-            <Button className="bg-[#1677FF] hover:bg-[#1677FF]/90" onClick={() => setShowFollowDialog(false)}>保存</Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={() => setShowFollowDialog(false)}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

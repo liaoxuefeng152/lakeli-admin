@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Eye, Download, Play, X, Calendar, Clock, Phone } from 'lucide-react';
-import { callRecords, outboundTasks } from '@/lib/mock-data';
-import type { CallRecord } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { Search, Eye, Download, Play, X, Calendar, Clock, Phone, Loader2 } from 'lucide-react';
+import { fetchOutboundRecords, type OutboundCallRecord, type OutboundTask } from '@/lib/services/admin-api';
+import { exportToCsv } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const statusColors: Record<string, string> = {
   '已接通': 'bg-green-50 text-green-600',
@@ -30,13 +31,33 @@ const formatDuration = (seconds: number) => {
 };
 
 export default function CallRecordsPage() {
+  const [records, setRecords] = useState<OutboundCallRecord[]>([]);
+  const [tasks, setTasks] = useState<OutboundTask[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterTask, setFilterTask] = useState('');
   const [filterIntent, setFilterIntent] = useState('');
   const [filterConnected, setFilterConnected] = useState('');
-  const [viewRecord, setViewRecord] = useState<CallRecord | null>(null);
+  const [viewRecord, setViewRecord] = useState<OutboundCallRecord | null>(null);
 
-  const filtered = callRecords.filter(r => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const [r, t] = await Promise.all([
+          fetchOutboundRecords('call-records'),
+          fetchOutboundRecords('tasks'),
+        ]);
+        setRecords(r as OutboundCallRecord[]);
+        setTasks(t as OutboundTask[]);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const filtered = records.filter(r => {
     if (search && !r.phone.includes(search) && !r.customerName.includes(search)) return false;
     if (filterTask && r.taskName !== filterTask) return false;
     if (filterIntent && r.intentTag !== filterIntent) return false;
@@ -44,6 +65,43 @@ export default function CallRecordsPage() {
     if (filterConnected === '未接通' && r.status === '已接通') return false;
     return true;
   });
+
+  const handleExport = () => {
+    exportToCsv(
+      '通话记录.csv',
+      ['手机号', '客户姓名', '所属任务', '拨打时间', '通话时长(秒)', '接通状态', '意向标签'],
+      filtered.map((r) => [
+        r.phone,
+        r.customerName,
+        r.taskName,
+        r.callTime,
+        r.duration,
+        r.status,
+        r.intentTag,
+      ])
+    );
+  };
+
+  const playRecording = (url?: string) => {
+    if (!url) {
+      toast('暂无录音', { description: '该通话暂未生成录音文件' });
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const downloadRecording = (url?: string) => {
+    if (!url) {
+      toast('暂无可下载的录音', { description: '录音文件待后端接口提供' });
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
 
   return (
     <div className="p-6">
@@ -56,11 +114,11 @@ export default function CallRecordsPage() {
       <div className="mb-4 flex items-center gap-3 rounded-lg bg-white p-4 shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#999]" />
-          <input type="text" placeholder="搜索手机号/客户姓名" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-md border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#1677FF]" />
+          <input type="text" placeholder="搜索手机号/客户姓名" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-md border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" />
         </div>
         <select value={filterTask} onChange={(e) => setFilterTask(e.target.value)} className="rounded-md border border-gray-200 px-3 py-2 text-sm outline-none">
           <option value="">全部任务</option>
-          {outboundTasks.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+          {tasks.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
         </select>
         <select value={filterIntent} onChange={(e) => setFilterIntent(e.target.value)} className="rounded-md border border-gray-200 px-3 py-2 text-sm outline-none">
           <option value="">全部意向</option>
@@ -76,12 +134,12 @@ export default function CallRecordsPage() {
           <option value="未接通">未接通</option>
         </select>
         <button onClick={() => { setSearch(''); setFilterTask(''); setFilterIntent(''); setFilterConnected(''); }} className="rounded-md border border-gray-200 px-4 py-2 text-sm text-[#666] hover:bg-gray-50">重置</button>
-        <button className="rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">查询</button>
+        <button className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">查询</button>
       </div>
 
       {/* Actions */}
       <div className="mb-4 flex items-center justify-between">
-        <button className="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-sm text-[#666] hover:bg-gray-50">
+        <button onClick={handleExport} className="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-sm text-[#666] hover:bg-gray-50">
           <Download className="h-3.5 w-3.5" /> 导出通话记录
         </button>
         <span className="text-xs text-[#999]">共 {filtered.length} 条记录</span>
@@ -103,7 +161,13 @@ export default function CallRecordsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((record) => (
+            {loading && (
+              <tr><td colSpan={8} className="py-16 text-center text-sm text-[#999]"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />加载中...</td></tr>
+            )}
+            {!loading && filtered.length === 0 && (
+              <tr><td colSpan={8} className="py-16 text-center text-sm text-[#999]">暂无外呼通话数据</td></tr>
+            )}
+            {!loading && filtered.map((record) => (
               <tr key={record.id} className="border-b border-gray-50 text-sm hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium text-[#333]">{record.phone}</td>
                 <td className="px-4 py-3 text-[#666]">{record.customerName}</td>
@@ -128,11 +192,14 @@ export default function CallRecordsPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setViewRecord(record)} className="flex items-center gap-1 text-xs text-[#1677FF] hover:underline">
+                    <button onClick={() => setViewRecord(record)} className="flex items-center gap-1 text-xs text-primary hover:underline">
                       <Eye className="h-3 w-3" /> 查看对话
                     </button>
                     {record.duration > 0 && (
-                      <button className="flex items-center gap-1 text-xs text-[#666] hover:underline">
+                      <button
+                        onClick={() => playRecording(record.recordingUrl)}
+                        className="flex items-center gap-1 text-xs text-[#666] hover:underline"
+                      >
                         <Play className="h-3 w-3" /> 播放录音
                       </button>
                     )}
@@ -140,9 +207,6 @@ export default function CallRecordsPage() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
-              <tr><td colSpan={8} className="py-16 text-center text-sm text-[#999]">暂无外呼通话数据</td></tr>
-            )}
           </tbody>
         </table>
       </div>
@@ -177,14 +241,17 @@ export default function CallRecordsPage() {
             {/* Audio Player Placeholder */}
             {viewRecord.duration > 0 && (
               <div className="mb-4 flex items-center gap-3 rounded-lg bg-blue-50 p-3">
-                <Play className="h-5 w-5 text-[#1677FF]" />
+                <Play className="h-5 w-5 text-primary" />
                 <div className="flex-1">
                   <div className="h-1.5 rounded-full bg-blue-200">
-                    <div className="h-1.5 w-1/3 rounded-full bg-[#1677FF]" />
+                    <div className="h-1.5 w-1/3 rounded-full bg-primary" />
                   </div>
                 </div>
                 <span className="text-xs text-[#666]">{formatDuration(viewRecord.duration)}</span>
-                <button className="text-xs text-[#1677FF] hover:underline">下载录音</button>
+                <button
+                  onClick={() => downloadRecording(viewRecord.recordingUrl)}
+                  className="text-xs text-primary hover:underline"
+                >下载录音</button>
               </div>
             )}
 
@@ -197,7 +264,7 @@ export default function CallRecordsPage() {
                     <div className={`max-w-[70%] rounded-lg px-4 py-2.5 text-sm ${
                       msg.role === 'customer'
                         ? 'bg-gray-100 text-[#333]'
-                        : 'bg-[#1677FF] text-white'
+                        : 'bg-primary text-white'
                     }`}>
                       <div className={`mb-1 text-xs ${msg.role === 'customer' ? 'text-[#999]' : 'text-white/70'}`}>
                         {msg.role === 'customer' ? '客户' : 'AI机器人'}
@@ -212,7 +279,7 @@ export default function CallRecordsPage() {
             </div>
 
             <div className="mt-6 flex justify-end">
-              <button onClick={() => setViewRecord(null)} className="rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">关闭</button>
+              <button onClick={() => setViewRecord(null)} className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">关闭</button>
             </div>
           </div>
         </div>

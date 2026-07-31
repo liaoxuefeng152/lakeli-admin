@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search, Plus, RefreshCw, Download, Play, Pause, Square, Eye,
-  Edit2, Trash2, FileDown, Calendar, X,
+  Edit2, Trash2, FileDown, Calendar, X, Loader2,
 } from 'lucide-react';
-import { outboundTasks, scriptScenes } from '@/lib/mock-data';
-import type { OutboundTask } from '@/lib/mock-data';
+import { fetchOutboundRecords, type OutboundTask, type OutboundScriptScene } from '@/lib/services/admin-api';
+import { exportToCsv } from '@/lib/utils';
 
 const statusColors: Record<string, string> = {
   '待执行': 'bg-gray-100 text-gray-600',
@@ -18,12 +18,31 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OutboundTasksPage() {
-  const [tasks, setTasks] = useState<OutboundTask[]>(outboundTasks);
+  const [tasks, setTasks] = useState<OutboundTask[]>([]);
+  const [scriptScenes, setScriptScenes] = useState<OutboundScriptScene[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchName, setSearchName] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterScript, setFilterScript] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [t, s] = await Promise.all([
+          fetchOutboundRecords('tasks'),
+          fetchOutboundRecords('script-scenes'),
+        ]);
+        setTasks(t as OutboundTask[]);
+        setScriptScenes(s as OutboundScriptScene[]);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const filtered = tasks.filter(t => {
     if (searchName && !t.name.includes(searchName)) return false;
@@ -34,6 +53,35 @@ export default function OutboundTasksPage() {
 
   const handleStatusChange = (id: string, newStatus: OutboundTask['status']) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+  };
+
+  const buildTaskRows = (list: OutboundTask[]) =>
+    list.map((t) => [
+      t.id,
+      t.name,
+      t.scriptSceneName,
+      t.totalNumbers,
+      t.calledCount,
+      t.connectedCount,
+      t.leadCount,
+      t.status,
+      t.createdAt,
+    ]);
+
+  const handleBatchExport = () => {
+    exportToCsv(
+      '外呼任务.csv',
+      ['任务ID', '任务名称', '话术场景', '总号码', '已拨打', '接通', '意向', '状态', '创建时间'],
+      buildTaskRows(filtered)
+    );
+  };
+
+  const handleExportTask = (task: OutboundTask) => {
+    exportToCsv(
+      `外呼任务_${task.id}.csv`,
+      ['任务ID', '任务名称', '话术场景', '总号码', '已拨打', '接通', '意向', '状态', '创建时间'],
+      buildTaskRows([task])
+    );
   };
 
   const handleDelete = (id: string) => {
@@ -67,7 +115,7 @@ export default function OutboundTasksPage() {
       default:
         actions.push(
           { icon: <Eye className="h-3 w-3" />, label: '详情', onClick: () => {} },
-          { icon: <FileDown className="h-3 w-3" />, label: '导出', onClick: () => {} },
+          { icon: <FileDown className="h-3 w-3" />, label: '导出', onClick: () => handleExportTask(task) },
         );
     }
     return actions;
@@ -89,7 +137,7 @@ export default function OutboundTasksPage() {
             placeholder="搜索任务名称"
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
-            className="w-full rounded-md border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#1677FF]"
+            className="w-full rounded-md border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-primary"
           />
         </div>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-gray-200 px-3 py-2 text-sm outline-none">
@@ -106,19 +154,19 @@ export default function OutboundTasksPage() {
           {scriptScenes.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
         </select>
         <button onClick={() => { setSearchName(''); setFilterStatus(''); setFilterScript(''); }} className="rounded-md border border-gray-200 px-4 py-2 text-sm text-[#666] hover:bg-gray-50">重置</button>
-        <button className="rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">查询</button>
+        <button className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">查询</button>
       </div>
 
       {/* Actions */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-1.5 rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">
+          <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">
             <Plus className="h-4 w-4" /> 创建任务
           </button>
           <button className="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-sm text-[#666] hover:bg-gray-50">
             <RefreshCw className="h-3.5 w-3.5" /> 刷新
           </button>
-          <button className="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-sm text-[#666] hover:bg-gray-50">
+          <button onClick={handleBatchExport} className="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-sm text-[#666] hover:bg-gray-50">
             <Download className="h-3.5 w-3.5" /> 批量导出
           </button>
         </div>
@@ -143,7 +191,13 @@ export default function OutboundTasksPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((task) => (
+            {loading && (
+              <tr><td colSpan={10} className="py-16 text-center text-sm text-[#999]"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />加载中...</td></tr>
+            )}
+            {!loading && filtered.length === 0 && (
+              <tr><td colSpan={10} className="py-16 text-center text-sm text-[#999]">暂无外呼任务，点击「创建任务」开始</td></tr>
+            )}
+            {!loading && filtered.map((task) => (
               <tr key={task.id} className="border-b border-gray-50 text-sm hover:bg-gray-50">
                 <td className="px-4 py-3 text-[#999]">{task.id}</td>
                 <td className="px-4 py-3 font-medium text-[#333]">{task.name}</td>
@@ -171,7 +225,7 @@ export default function OutboundTasksPage() {
                         key={i}
                         onClick={action.onClick}
                         className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
-                          action.danger ? 'text-red-500 hover:bg-red-50' : 'text-[#1677FF] hover:bg-blue-50'
+                          action.danger ? 'text-red-500 hover:bg-red-50' : 'text-primary hover:bg-blue-50'
                         }`}
                       >
                         {action.icon} {action.label}
@@ -199,7 +253,7 @@ export default function OutboundTasksPage() {
             <div className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm text-[#333]">任务名称 <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="请输入任务名称" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+                <input type="text" placeholder="请输入任务名称" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               </div>
               <div>
                 <label className="mb-1 block text-sm text-[#333]">选择AI话术场景 <span className="text-red-500">*</span></label>
@@ -236,7 +290,7 @@ export default function OutboundTasksPage() {
               </div>
               <div>
                 <label className="mb-1 block text-sm text-[#333]">单号码拨打间隔（秒）</label>
-                <input type="number" defaultValue={60} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#1677FF]" />
+                <input type="number" defaultValue={60} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
               </div>
               <div>
                 <label className="mb-1 block text-sm text-[#333]">选择外呼号码</label>
@@ -245,7 +299,7 @@ export default function OutboundTasksPage() {
                   <label className="flex items-center gap-2 text-sm"><input type="radio" name="numberSource" /> 现场Excel导入</label>
                 </div>
                 <div className="mt-2 rounded-lg border-2 border-dashed border-gray-200 p-6 text-center text-sm text-[#999]">
-                  拖拽文件到此处或 <span className="cursor-pointer text-[#1677FF]">点击上传</span>
+                  拖拽文件到此处或 <span className="cursor-pointer text-primary">点击上传</span>
                   <p className="mt-1 text-xs text-[#bbb]">支持 .xlsx / .csv 格式</p>
                 </div>
               </div>
@@ -253,7 +307,7 @@ export default function OutboundTasksPage() {
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={() => setShowCreateModal(false)} className="rounded-md border border-gray-200 px-4 py-2 text-sm text-[#666] hover:bg-gray-50">返回列表</button>
               <button className="rounded-md border border-gray-200 px-4 py-2 text-sm text-[#666] hover:bg-gray-50">保存草稿</button>
-              <button onClick={() => setShowCreateModal(false)} className="rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">立即创建</button>
+              <button onClick={() => setShowCreateModal(false)} className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">立即创建</button>
             </div>
           </div>
         </div>

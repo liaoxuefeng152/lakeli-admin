@@ -1,225 +1,343 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
-  UserCog,
-  FileText,
-  BookOpen,
+  Building2,
+  Target,
+  CreditCard,
+  Database,
   MessageSquare,
-  BarChart3,
+  ScrollText,
   Globe,
   Bot,
-  ChevronLeft,
-  ChevronRight,
-  Building2,
-  Cpu,
-  Settings,
-  ScrollText,
+  Brain,
+  Network,
   Phone,
+  ChevronDown,
+  Menu,
+  X,
 } from 'lucide-react';
+import { useAuth, ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE } from '@/lib/auth';
 
 interface MenuItem {
   key: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  path: string;
-  children?: { key: string; label: string; path: string }[];
+  path?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  children?: MenuItem[];
 }
 
-const platformMenus: MenuItem[] = [
-  { key: 'dashboard', label: '工作台', icon: LayoutDashboard, path: '/dashboard' },
-  { key: 'accounts', label: '账号权限管理', icon: UserCog, path: '/accounts' },
-  { key: 'customers', label: '客户档案中心', icon: Users, path: '/customers' },
-  { key: 'leads', label: '线索管理池', icon: FileText, path: '/leads' },
-  { key: 'orders', label: '订单&计费中心', icon: Building2, path: '/orders' },
-  { key: 'knowledge', label: '知识库管理', icon: BookOpen, path: '/knowledge' },
-  { key: 'wecom', label: '企微配置中心', icon: MessageSquare, path: '/wecom' },
-  { key: 'analytics', label: '数据总看板', icon: BarChart3, path: '/analytics' },
-  { key: 'system-config', label: '系统基础配置', icon: Settings, path: '/system-config' },
-  { key: 'operation-log', label: '操作日志', icon: ScrollText, path: '/operation-log' },
-];
-
-const geoMenus: MenuItem[] = [
+const menuGroups: MenuItem[] = [
+  {
+    key: 'platform',
+    label: '平台管理',
+    icon: LayoutDashboard,
+    children: [
+      { key: 'dashboard', label: '工作台', path: '/dashboard', icon: LayoutDashboard },
+      { key: 'accounts', label: '账号权限', path: '/accounts', icon: Users, },
+      { key: 'customers', label: '全域客户档案', path: '/customers', icon: Building2 },
+      { key: 'leads', label: '全域线索管理', path: '/leads', icon: Target },
+      { key: 'orders', label: '订单计费中心', path: '/orders', icon: CreditCard, },
+      { key: 'wecom', label: '企微配置中心', path: '/wecom', icon: MessageSquare, },
+      { key: 'platform-models', label: '模型配置', path: '/platform/models', icon: Brain },
+      { key: 'operation-log', label: '操作日志', path: '/operation-log', icon: ScrollText, },
+    ],
+  },
   {
     key: 'geo',
-    label: '域途GEO SaaS',
+    label: '域途 GEO SaaS',
     icon: Globe,
     path: '/geo',
     children: [
-      { key: 'geo-overview', label: '客户GEO数据总览', path: '/geo' },
+      { key: 'geo-overview', label: 'GEO 概览', path: '/geo' },
       { key: 'geo-diagnostics', label: 'GEO诊断记录', path: '/geo/diagnostics' },
       { key: 'geo-copy', label: '文案生成记录', path: '/geo/copy' },
-      { key: 'geo-keywords', label: '关键词挖掘记录', path: '/geo/keywords' },
+      { key: 'geo-keywords', label: '关键词挖掘', path: '/geo/keywords' },
       { key: 'geo-monitor', label: 'AI监测数据', path: '/geo/monitor' },
-      { key: 'geo-templates', label: '行业模板管理', path: '/geo/templates' },
+      { key: 'geo-templates', label: '行业模板', path: '/geo/templates' },
     ],
   },
-];
-
-const aiMenus: MenuItem[] = [
   {
     key: 'ai-service',
-    label: '智推AI客服',
-    icon: Bot,
+    label: '智推 AI 客服',
+    icon: MessageSquare,
     path: '/ai-service',
     children: [
-      { key: 'ai-chats', label: '全量AI对话记录', path: '/ai-service' },
-      { key: 'ai-keywords', label: '意向关键词配置', path: '/ai-service/keywords' },
-      { key: 'ai-quota', label: 'AI助手配额设置', path: '/ai-service/quota' },
-      { key: 'ai-wecom-archive', label: '企微会话存档', path: '/ai-service/wecom-archive' },
-      { key: 'ai-feedback', label: '用户反馈统计', path: '/ai-service/feedback' },
+      { key: 'ai-chats', label: '全量对话记录', path: '/ai-service' },
+      { key: 'ai-keywords', label: '意向关键词', path: '/ai-service/keywords', },
+      { key: 'ai-quota', label: 'AI配额设置', path: '/ai-service/quota', },
+      { key: 'ai-wecom-archive', label: '企微会话存档', path: '/ai-service/wecom-archive', },
+      { key: 'ai-feedback', label: '用户反馈统计', path: '/ai-service/feedback', },
     ],
   },
-];
-
-const agentMenus: MenuItem[] = [
-  {
-    key: 'agent',
-    label: '统一Agent智能体管理',
-    icon: Cpu,
-    path: '/agent',
-    children: [
-      { key: 'agent-repo', label: 'Agent资源仓库', path: '/agent' },
-      { key: 'agent-chats', label: '全平台对话记录查询', path: '/agent/chats' },
-      { key: 'agent-sandbox', label: 'Agent测试沙盒', path: '/agent/sandbox' },
-      { key: 'agent-migration', label: '扣子资产批量迁移工具', path: '/agent/migration' },
-      { key: 'agent-scheduling', label: 'AI调度与配额管控', path: '/agent/scheduling' },
-      { key: 'agent-dashboard', label: 'Agent专项数据看板', path: '/agent/dashboard' },
-    ],
-  },
-];
-
-const outboundCallMenus: MenuItem[] = [
   {
     key: 'outbound-call',
-    label: '智能推销外呼',
+    label: '智能外呼',
     icon: Phone,
     path: '/outbound-call',
     children: [
-      { key: 'oc-dashboard', label: '外呼工作台', path: '/outbound-call' },
-      { key: 'oc-tasks', label: '外呼任务管理', path: '/outbound-call/tasks' },
-      { key: 'oc-numbers', label: '客户号码管理', path: '/outbound-call/numbers' },
-      { key: 'oc-blacklist', label: '黑名单管理', path: '/outbound-call/blacklist' },
-      { key: 'oc-scripts', label: 'AI话术场景管理', path: '/outbound-call/scripts' },
-      { key: 'oc-records', label: '通话记录与复盘', path: '/outbound-call/records' },
-      { key: 'oc-reports', label: '数据报表中心', path: '/outbound-call/reports' },
-      { key: 'oc-config', label: '阿里云接口配置', path: '/outbound-call/config' },
+      { key: 'oc-overview', label: '外呼工作台', path: '/outbound-call' },
+      { key: 'oc-tasks', label: '外呼任务', path: '/outbound-call/tasks' },
+      { key: 'oc-numbers', label: '客户号码', path: '/outbound-call/numbers' },
+      { key: 'oc-blacklist', label: '黑名单', path: '/outbound-call/blacklist' },
+      { key: 'oc-scripts', label: 'AI话术场景', path: '/outbound-call/scripts' },
+      { key: 'oc-records', label: '通话记录', path: '/outbound-call/records' },
+      { key: 'oc-reports', label: '数据报表', path: '/outbound-call/reports' },
+      { key: 'oc-config', label: '阿里云配置', path: '/outbound-call/config' },
+    ],
+  },
+  {
+    key: 'lzg',
+    label: '龙掌柜 AI 助手',
+    icon: Bot,
+    path: '/lzg/dashboard',
+    children: [
+      { key: 'lzg-dashboard', label: '概览仪表盘', path: '/lzg/dashboard' },
+      { key: 'lzg-sessions', label: '会话记录', path: '/lzg/sessions' },
+      { key: 'lzg-skills', label: '技能管理', path: '/lzg/skills' },
+      { key: 'lzg-env-config', label: '运行环境配置', path: '/lzg/env-config' },
+      { key: 'knowledge', label: '知识空间', path: '/knowledge' },
+      { key: 'lzg-assets', label: '素材管理', path: '/lzg/assets' },
+      { key: 'lzg-products', label: '商品管理', path: '/lzg/products' },
+      { key: 'lzg-shops', label: '店铺管理', path: '/lzg/shops' },
+      { key: 'lzg-quota', label: '配额管理', path: '/lzg/quota' },
+    ],
+  },
+  {
+    key: 'knowledge-engine',
+    label: '跨境外贸知识引擎',
+    icon: Network,
+    path: '/knowledge-engine',
+    children: [
+      { key: 'ke-overview', label: '产品概览', path: '/knowledge-engine' },
+      { key: 'ke-logs', label: '日志统计中心', path: '/knowledge-engine/logs' },
+      { key: 'ke-permissions', label: '系统权限管理', path: '/knowledge-engine/permissions' },
+    ],
+  },
+  {
+    key: 'dp',
+    label: '数据平台',
+    icon: Database,
+    path: '/dp/metrics',
+    children: [
+      { key: 'dp-metrics', label: '指标平台', path: '/dp/metrics' },
+      { key: 'dp-customer360', label: '客户360', path: '/dp/customer-360' },
+      { key: 'dp-tags', label: '标签分群', path: '/dp/tags' },
+      { key: 'dp-governance', label: '治理看板', path: '/dp/governance' },
     ],
   },
 ];
 
+// 角色 → 可见菜单（key 不在表中 = 所有已登录角色可见）
+// 角色层级：admin(超管) > operator(运营) > sales(销售) > user(普通)
+const ROLE_ACCESS: Record<string, string[]> = {
+  // 仅超管
+  accounts: [ADMIN_ROLE],
+  wecom: [ADMIN_ROLE],
+  'operation-log': [ADMIN_ROLE],
+  // 超管 + 运营（+销售可见计费）
+  orders: [ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE],
+  knowledge: [ADMIN_ROLE, OPERATOR_ROLE],
+  // GEO 模块
+  geo: [ADMIN_ROLE, OPERATOR_ROLE],
+  'geo-overview': [ADMIN_ROLE, OPERATOR_ROLE],
+  'geo-diagnostics': [ADMIN_ROLE, OPERATOR_ROLE],
+  'geo-copy': [ADMIN_ROLE, OPERATOR_ROLE],
+  'geo-keywords': [ADMIN_ROLE, OPERATOR_ROLE],
+  'geo-monitor': [ADMIN_ROLE, OPERATOR_ROLE],
+  'geo-templates': [ADMIN_ROLE, OPERATOR_ROLE],
+  // 智推 AI 客服（配置类）
+  'ai-keywords': [ADMIN_ROLE, OPERATOR_ROLE],
+  'ai-quota': [ADMIN_ROLE, OPERATOR_ROLE],
+  'ai-wecom-archive': [ADMIN_ROLE, OPERATOR_ROLE],
+  'ai-feedback': [ADMIN_ROLE, OPERATOR_ROLE],
+  // 智能外呼
+  'outbound-call': [ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE],
+  'oc-overview': [ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE],
+  'oc-tasks': [ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE],
+  'oc-numbers': [ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE],
+  'oc-blacklist': [ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE],
+  'oc-scripts': [ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE],
+  'oc-records': [ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE],
+  'oc-reports': [ADMIN_ROLE, OPERATOR_ROLE, SALES_ROLE],
+  'oc-config': [ADMIN_ROLE, OPERATOR_ROLE],
+  // 龙掌柜 AI 助手
+  lzg: [ADMIN_ROLE, OPERATOR_ROLE],
+  'lzg-dashboard': [ADMIN_ROLE, OPERATOR_ROLE],
+  'lzg-sessions': [ADMIN_ROLE, OPERATOR_ROLE],
+  'lzg-skills': [ADMIN_ROLE, OPERATOR_ROLE],
+  'platform-models': [ADMIN_ROLE, OPERATOR_ROLE],
+  'lzg-env-config': [ADMIN_ROLE, OPERATOR_ROLE],
+  'lzg-assets': [ADMIN_ROLE, OPERATOR_ROLE],
+  'lzg-products': [ADMIN_ROLE, OPERATOR_ROLE],
+  'lzg-shops': [ADMIN_ROLE, OPERATOR_ROLE],
+  'lzg-quota': [ADMIN_ROLE, OPERATOR_ROLE],
+  // 跨境外贸知识引擎
+  'knowledge-engine': [ADMIN_ROLE, OPERATOR_ROLE],
+  'ke-overview': [ADMIN_ROLE, OPERATOR_ROLE],
+  'ke-logs': [ADMIN_ROLE, OPERATOR_ROLE],
+  'ke-permissions': [ADMIN_ROLE, OPERATOR_ROLE],
+  // 数据平台（拉客力数据中台 dp）
+  'dp': [ADMIN_ROLE, OPERATOR_ROLE],
+  'dp-metrics': [ADMIN_ROLE, OPERATOR_ROLE],
+  'dp-customer360': [ADMIN_ROLE, OPERATOR_ROLE],
+  'dp-tags': [ADMIN_ROLE, OPERATOR_ROLE],
+  'dp-governance': [ADMIN_ROLE, OPERATOR_ROLE],
+};
+
 export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['geo', 'ai-service', 'agent', 'outbound-call']);
   const pathname = usePathname();
+  const { user } = useAuth();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
 
-  const toggleGroup = (key: string) => {
-    setExpandedGroups((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
+const canSee = (item: MenuItem) => {
+  const allowed = ROLE_ACCESS[item.key];
+  return !allowed || allowed.includes(user?.role ?? '');
+};
+
+  useEffect(() => {
+    const initialOpen: string[] = [];
+    for (const group of menuGroups) {
+      if (group.children?.some((child) => child.path && pathname.startsWith(child.path))) {
+        initialOpen.push(group.key);
+      }
+    }
+    setOpenKeys(initialOpen);
+  }, [pathname]);
+
+  const onToggle = (key: string) => {
+    setOpenKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
 
-  const isActive = (path: string) => {
-    if (path === '/dashboard') return pathname === '/dashboard';
-    return pathname === path || pathname?.startsWith(path + '/');
-  };
-
-  const renderMenuItem = (item: MenuItem) => {
-    if (item.children) {
-      const isExpanded = expandedGroups.includes(item.key);
+  const renderMenuItem = (item: MenuItem, level = 0): React.ReactNode => {
+    if (!canSee(item)) return null;
+    const hasChildren = item.children && item.children.length > 0;
+    if (hasChildren) {
+      const visibleChildren = item.children!.filter(canSee);
+      if (visibleChildren.length === 0) return null;
+      const isOpen = openKeys.includes(item.key);
       return (
         <div key={item.key}>
           <button
-            onClick={() => toggleGroup(item.key)}
-            className="flex w-full items-center justify-between px-4 py-2.5 text-sm text-white/65 hover:bg-white/8 hover:text-white transition-colors"
+            onClick={() => onToggle(item.key)}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              isOpen ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100'
+            }`}
           >
-            <div className="flex items-center gap-3">
-              <item.icon className="h-4 w-4" />
-              {!collapsed && <span>{item.label}</span>}
-            </div>
-            {!collapsed && (
-              <ChevronRight
-                className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-              />
-            )}
+            {item.icon && <item.icon className="h-5 w-5 shrink-0" />}
+            {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
+            {!collapsed && <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
           </button>
-          {isExpanded &&
-            !collapsed &&
-            item.children.map((child) => (
-              <Link
-                key={child.key}
-                href={child.path}
-                className={`flex items-center gap-3 py-2 pl-11 pr-4 text-sm transition-colors ${
-                  isActive(child.path)
-                    ? 'bg-[#1677FF] text-white'
-                    : 'text-white/50 hover:bg-white/8 hover:text-white'
-                }`}
-              >
-                {child.label}
-              </Link>
-            ))}
+          {isOpen && !collapsed && (
+            <div className="ml-4 mt-1 space-y-1 border-l border-gray-200 pl-3">
+              {visibleChildren.map((child) => renderMenuItem(child, level + 1))}
+            </div>
+          )}
         </div>
       );
     }
-
+    const isActive = pathname === item.path;
     return (
       <Link
         key={item.key}
-        href={item.path}
-        className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-          isActive(item.path)
-            ? 'bg-[#1677FF] text-white'
-            : 'text-white/65 hover:bg-white/8 hover:text-white'
-        }`}
+        href={item.path || '#'}
+        onClick={() => setMobileOpen(false)}
+        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+          isActive ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
+        } ${level > 0 ? 'pl-6' : ''}`}
       >
-        <item.icon className="h-4 w-4" />
+        {item.icon && <item.icon className="h-5 w-5 shrink-0" />}
         {!collapsed && <span>{item.label}</span>}
       </Link>
     );
   };
 
+  const sidebarContent = (
+    <div className="flex h-full flex-col">
+      {!collapsed && (
+        <div className="flex h-16 items-center gap-2 px-5">
+          <div className="h-8 w-8 rounded-lg bg-primary" />
+          <span className="text-lg font-bold text-gray-900">拉克力</span>
+        </div>
+      )}
+      {collapsed && <div className="flex h-16 items-center justify-center">
+        <div className="h-8 w-8 rounded-lg bg-primary" />
+      </div>}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+        {menuGroups.map((group) => {
+          if (!canSee(group)) return null;
+          const visibleChildren = (group.children || []).filter(canSee);
+          if (group.children && visibleChildren.length === 0) return null;
+          if (collapsed) {
+            return (
+              <div key={group.key} className="group relative py-1">
+                <button className="flex w-full items-center justify-center rounded-lg py-2.5 text-gray-600 hover:bg-gray-100">
+                  {group.icon && <group.icon className="h-5 w-5" />}
+                </button>
+                <div className="invisible absolute left-full top-0 z-50 ml-2 hidden w-52 rounded-lg border border-gray-200 bg-white p-2 shadow-lg group-hover:visible group-hover:block">
+                  <div className="mb-1 px-2 py-1 text-xs font-semibold text-gray-400">{group.label}</div>
+                  {visibleChildren.map((child) => (
+                    <Link
+                      key={child.key}
+                      href={child.path || '#'}
+                      onClick={() => setMobileOpen(false)}
+                      className={`block rounded-md px-2 py-1.5 text-sm ${
+                        pathname === child.path ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {child.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+          return <div key={group.key} className="space-y-1">{renderMenuItem(group)}</div>;
+        })}
+      </nav>
+    </div>
+  );
+
   return (
-    <aside
-      className={`flex flex-col bg-[#001529] transition-all duration-200 ${
-        collapsed ? 'w-16' : 'w-60'
-      }`}
-      style={{ minHeight: 'calc(100vh - 56px)' }}
-    >
-      <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden py-2">
-        {/* Platform Common */}
-        {!collapsed && (
-          <div className="px-4 py-2 text-[11px] font-medium tracking-wider text-white/30 uppercase">
-            中台公共能力
-          </div>
-        )}
-        {platformMenus.map(renderMenuItem)}
-
-        {/* Divider */}
-        <div className="mx-4 my-2 border-t border-white/10" />
-
-        {/* Business Plugins */}
-        {!collapsed && (
-          <div className="px-4 py-2 text-[11px] font-medium tracking-wider text-white/30 uppercase">
-            业务插件
-          </div>
-        )}
-        {geoMenus.map(renderMenuItem)}
-        {aiMenus.map(renderMenuItem)}
-        {agentMenus.map(renderMenuItem)}
-        {outboundCallMenus.map(renderMenuItem)}
+    <>
+      <div className="md:hidden fixed top-3 left-3 z-50">
+        <button onClick={() => setMobileOpen(true)} className="rounded-lg bg-primary p-2 text-white">
+          <Menu className="h-5 w-5" />
+        </button>
       </div>
 
-      {/* Collapse Toggle */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center justify-center border-t border-white/10 py-3 text-white/45 hover:text-white transition-colors"
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-64 bg-white shadow-xl">
+            <button onClick={() => setMobileOpen(false)} className="absolute right-3 top-4 text-gray-400">
+              <X className="h-5 w-5" />
+            </button>
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+
+      <aside
+        className={`hidden md:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 ${
+          collapsed ? 'w-[72px]' : 'w-60'
+        }`}
       >
-        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-      </button>
-    </aside>
+        <button
+          onClick={() => setCollapsed((v) => !v)}
+          className="absolute -right-3 top-20 z-10 hidden h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow md:flex"
+        >
+          {collapsed ? <Menu className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+        </button>
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Download, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,9 +21,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { geoRecords } from '@/lib/mock-data';
+import { geoRecords as mockGeoRecords } from '@/lib/mock-data';
+import { exportToCsv } from '@/lib/utils';
 
-const dailyUsage = [
+const mockDailyUsage = [
   { day: '07-04', diagnostics: 35, copy: 80, exposure: 5200 },
   { day: '07-05', diagnostics: 42, copy: 95, exposure: 6100 },
   { day: '07-06', diagnostics: 28, copy: 65, exposure: 4800 },
@@ -33,7 +34,86 @@ const dailyUsage = [
   { day: '07-10', diagnostics: 52, copy: 120, exposure: 8500 },
 ];
 
+interface Summary {
+  todayDiagnostics: number;
+  todayCopy: number;
+  totalExposure: number;
+  activeCustomers: number;
+  diagnosisDeltaPct: number;
+  copyDeltaPct: number;
+  exposureDeltaPct: number;
+}
+interface TrendRow {
+  day: string;
+  diagnostics: number;
+  copy: number;
+  exposure: number;
+}
+interface CustomerDetail {
+  id: string;
+  customerName: string;
+  diagnosticsCount: number;
+  copyCount: number;
+  monitorExposure: number;
+  date: string;
+}
+
+const defaultSummary: Summary = {
+  todayDiagnostics: 0,
+  todayCopy: 0,
+  totalExposure: 0,
+  activeCustomers: 0,
+  diagnosisDeltaPct: 0,
+  copyDeltaPct: 0,
+  exposureDeltaPct: 0,
+};
+
+function deltaNode(n: number) {
+  if (n > 0) return <span className="text-xs text-[#00B42A] mt-1">+{n}% vs 昨日</span>;
+  if (n < 0) return <span className="text-xs text-[#F53F39] mt-1">{n}% vs 昨日</span>;
+  return <span className="text-xs text-gray-400 mt-1">持平 vs 昨日</span>;
+}
+
 export default function GeoOverviewPage() {
+  const [summary, setSummary] = useState<Summary>(defaultSummary);
+  const [dailyUsage, setDailyUsage] = useState<TrendRow[]>(mockDailyUsage);
+  const [customers, setCustomers] = useState<CustomerDetail[]>(mockGeoRecords as unknown as CustomerDetail[]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/geo/admin-dashboard');
+        if (!res.ok) throw new Error('status ' + res.status);
+        const json = await res.json();
+        if (json?.code === 0 && json.data) {
+          const d = json.data as { summary: Summary; trend: TrendRow[]; customerDetails: CustomerDetail[] };
+          if (cancelled) return;
+          setSummary(d.summary);
+          if (Array.isArray(d.trend) && d.trend.length) setDailyUsage(d.trend);
+          if (Array.isArray(d.customerDetails) && d.customerDetails.length) setCustomers(d.customerDetails);
+        }
+      } catch (e) {
+        // 拉取失败：保留 mock 兜底，保证页面可用
+        console.warn('[GEO] dashboard fetch failed, fallback to mock', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleExport = () => {
+    exportToCsv(
+      'GEO客户使用明细.csv',
+      ['客户名称', '诊断次数', '文案条数', 'AI曝光量', '日期'],
+      customers.map((r) => [r.customerName, r.diagnosticsCount, r.copyCount, r.monitorExposure, r.date])
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -41,32 +121,39 @@ export default function GeoOverviewPage() {
           <h1 className="text-xl font-bold text-gray-900">客户GEO数据总览</h1>
           <p className="text-sm text-gray-500 mt-1">查看各客户GEO功能使用量与监测数据</p>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" onClick={handleExport}>
           <Download className="mr-2 h-4 w-4" />
           导出数据
         </Button>
+      </div>
+
+      <div className="rounded-md bg-[#F0F5FF] border border-blue-200 px-4 py-2.5">
+        <p className="text-sm text-[#0F52BA]">
+          数据来源：后端真实聚合接口 <code className="text-xs">/api/geo/admin-dashboard</code>
+          （诊断 / 文案 / 监测 等 GEO 管理表）。{loading && '加载中…'}
+        </p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4">
         <div className="rounded-xl bg-white border border-gray-100 shadow-sm p-5">
           <div className="text-sm text-gray-500">今日诊断总次数</div>
-          <div className="text-2xl font-bold text-[#0F52BA] mt-1">176</div>
-          <div className="text-xs text-[#00B42A] mt-1">+12% vs 昨日</div>
+          <div className="text-2xl font-bold text-[#0F52BA] mt-1">{summary.todayDiagnostics}</div>
+          {deltaNode(summary.diagnosisDeltaPct)}
         </div>
         <div className="rounded-xl bg-white border border-gray-100 shadow-sm p-5">
           <div className="text-sm text-gray-500">今日文案生成</div>
-          <div className="text-2xl font-bold text-[#0F52BA] mt-1">450</div>
-          <div className="text-xs text-[#00B42A] mt-1">+8% vs 昨日</div>
+          <div className="text-2xl font-bold text-[#0F52BA] mt-1">{summary.todayCopy}</div>
+          {deltaNode(summary.copyDeltaPct)}
         </div>
         <div className="rounded-xl bg-white border border-gray-100 shadow-sm p-5">
           <div className="text-sm text-gray-500">总AI曝光量</div>
-          <div className="text-2xl font-bold text-[#0F52BA] mt-1">33,600</div>
-          <div className="text-xs text-[#00B42A] mt-1">+18% vs 上周</div>
+          <div className="text-2xl font-bold text-[#0F52BA] mt-1">{summary.totalExposure.toLocaleString()}</div>
+          {deltaNode(summary.exposureDeltaPct)}
         </div>
         <div className="rounded-xl bg-white border border-gray-100 shadow-sm p-5">
           <div className="text-sm text-gray-500">活跃客户数</div>
-          <div className="text-2xl font-bold text-[#0F52BA] mt-1">5</div>
+          <div className="text-2xl font-bold text-[#0F52BA] mt-1">{summary.activeCustomers}</div>
           <div className="text-xs text-gray-500 mt-1">GEO套餐客户</div>
         </div>
       </div>
@@ -108,7 +195,7 @@ export default function GeoOverviewPage() {
             </tr>
           </thead>
           <tbody>
-            {geoRecords.map((record) => (
+            {customers.map((record) => (
               <tr key={record.id} className="border-b border-gray-50 hover:bg-[#F0F5FF] transition-colors">
                 <td className="px-5 py-4 text-sm font-medium text-[#0F52BA] cursor-pointer hover:underline">
                   {record.customerName}

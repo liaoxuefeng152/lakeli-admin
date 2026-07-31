@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Search, Plus, Upload, Trash2, Ban, RefreshCw, Download,
+  Search, Plus, Upload, Trash2, Ban, RefreshCw, Download, Loader2,
 } from 'lucide-react';
-import { phoneNumbers } from '@/lib/mock-data';
-import type { PhoneNumberItem } from '@/lib/mock-data';
+import { fetchOutboundRecords, type OutboundPhoneNumber } from '@/lib/services/admin-api';
 
 const statusColors: Record<string, string> = {
   '未拨打': 'bg-gray-100 text-gray-600',
@@ -16,10 +15,24 @@ const statusColors: Record<string, string> = {
 };
 
 export default function NumbersPage() {
-  const [numbers, setNumbers] = useState<PhoneNumberItem[]>(phoneNumbers);
+  const [numbers, setNumbers] = useState<OutboundPhoneNumber[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const n = await fetchOutboundRecords('phone-numbers');
+        setNumbers(n as OutboundPhoneNumber[]);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const filtered = numbers.filter(n => {
     if (search && !n.customerName.includes(search) && !n.phone.includes(search)) return false;
@@ -59,7 +72,7 @@ export default function NumbersPage() {
       <div className="mb-4 flex items-center gap-3 rounded-lg bg-white p-4 shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#999]" />
-          <input type="text" placeholder="搜索手机号/客户姓名" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-md border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#1677FF]" />
+          <input type="text" placeholder="搜索手机号/客户姓名" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-md border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" />
         </div>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-gray-200 px-3 py-2 text-sm outline-none">
           <option value="">全部状态</option>
@@ -70,13 +83,13 @@ export default function NumbersPage() {
           <option value="无意向">无意向</option>
         </select>
         <button onClick={() => { setSearch(''); setFilterStatus(''); }} className="rounded-md border border-gray-200 px-4 py-2 text-sm text-[#666] hover:bg-gray-50">重置</button>
-        <button className="rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">查询</button>
+        <button className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">查询</button>
       </div>
 
       {/* Actions */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 rounded-md bg-[#1677FF] px-4 py-2 text-sm text-white hover:bg-[#4096FF]">
+          <button className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-[#4096FF]">
             <Upload className="h-4 w-4" /> 导入号码
           </button>
           <button className="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-sm text-[#666] hover:bg-gray-50">
@@ -114,7 +127,13 @@ export default function NumbersPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((n) => (
+            {loading && (
+              <tr><td colSpan={9} className="py-16 text-center text-sm text-[#999]"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />加载中...</td></tr>
+            )}
+            {!loading && filtered.length === 0 && (
+              <tr><td colSpan={9} className="py-16 text-center text-sm text-[#999]">暂无客户号码，点击「导入号码」开始</td></tr>
+            )}
+            {!loading && filtered.map((n) => (
               <tr key={n.id} className="border-b border-gray-50 text-sm hover:bg-gray-50">
                 <td className="px-4 py-3">
                   <input type="checkbox" checked={selected.includes(n.id)} onChange={() => toggleSelect(n.id)} className="rounded" />

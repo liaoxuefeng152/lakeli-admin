@@ -1,18 +1,21 @@
 'use client';
 
-import { Search, Download, Eye } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, Download, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { fetchGeoRecords } from '@/lib/services/admin-api';
+import { exportToCsv } from '@/lib/utils';
 
-const diagnosticsRecords = [
-  { id: 'D001', customer: '深圳跨境通科技有限公司', url: 'www.crossborder-trade.com', score: 78, issues: 12, date: '2026-07-10 14:30' },
-  { id: 'D002', customer: '东莞精密工业设备有限公司', url: 'www.precision-equipment.cn', score: 85, issues: 8, date: '2026-07-10 11:20' },
-  { id: 'D003', customer: '深圳创新科技集团', url: 'www.innovatech.com', score: 62, issues: 18, date: '2026-07-10 09:45' },
-  { id: 'D004', customer: '珠海黄精生物科技有限公司', url: 'www.biohuangjing.com', score: 91, issues: 5, date: '2026-07-09 16:10' },
-  { id: 'D005', customer: '惠州教育培训机构', url: 'www.huizhouedu.cn', score: 55, issues: 22, date: '2026-07-09 10:30' },
-  { id: 'D006', customer: '佛山外贸制造有限公司', url: 'www.foshanexport.com', score: 72, issues: 15, date: '2026-07-08 15:40' },
-];
+interface DiagnosisRecord {
+  id: string;
+  customer: string;
+  url: string;
+  score: number;
+  issues: number;
+  date: string;
+}
 
 function getScoreColor(score: number): string {
   if (score >= 80) return '#00B42A';
@@ -21,6 +24,29 @@ function getScoreColor(score: number): string {
 }
 
 export default function GeoDiagnosticsPage() {
+  const [records, setRecords] = useState<DiagnosisRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setRecords(await fetchGeoRecords('diagnosis') as DiagnosisRecord[]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '加载失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = records.filter(
+    (r) => !search || r.customer.includes(search) || r.url.includes(search),
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -28,7 +54,7 @@ export default function GeoDiagnosticsPage() {
           <h1 className="text-xl font-bold text-gray-900">GEO诊断记录查询</h1>
           <p className="text-sm text-gray-500 mt-1">查看客户网站的GEO智能诊断结果</p>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => exportToCsv('GEO诊断记录.csv', ['记录ID', '客户', '诊断URL', 'GEO评分', '待优化项', '诊断时间'], filtered.map((r) => [r.id, r.customer, r.url, r.score, r.issues, r.date]))}>
           <Download className="mr-2 h-4 w-4" />
           导出记录
         </Button>
@@ -37,10 +63,23 @@ export default function GeoDiagnosticsPage() {
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="搜索客户/URL" className="pl-10" />
+          <Input
+            placeholder="搜索客户/URL"
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        <Button className="bg-[#0F52BA] hover:bg-[#0F52BA]/90">查询</Button>
+        <Button className="bg-[#0F52BA] hover:bg-[#0F52BA]/90" onClick={load} disabled={loading}>
+          查询
+        </Button>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}<Button variant="link" className="h-auto p-0 ml-2 text-red-700" onClick={load}>重试</Button>
+        </div>
+      )}
 
       <div className="rounded-xl bg-white border border-gray-100 shadow-sm overflow-hidden">
         <table className="w-full">
@@ -56,7 +95,11 @@ export default function GeoDiagnosticsPage() {
             </tr>
           </thead>
           <tbody>
-            {diagnosticsRecords.map((record) => (
+            {loading ? (
+              <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-400">
+                <Loader2 className="h-5 w-5 animate-spin inline mr-2" />加载中...
+              </td></tr>
+            ) : filtered.map((record) => (
               <tr key={record.id} className="border-b border-gray-50 hover:bg-[#F0F5FF] transition-colors">
                 <td className="px-5 py-4 text-sm text-gray-500">{record.id}</td>
                 <td className="px-5 py-4 text-sm font-medium text-gray-900">{record.customer}</td>
@@ -79,6 +122,9 @@ export default function GeoDiagnosticsPage() {
                 </td>
               </tr>
             ))}
+            {!loading && filtered.length === 0 && (
+              <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-400">暂无诊断记录</td></tr>
+            )}
           </tbody>
         </table>
       </div>

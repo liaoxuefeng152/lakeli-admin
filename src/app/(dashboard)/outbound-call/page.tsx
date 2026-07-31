@@ -1,32 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Phone, PhoneCall, PhoneIncoming, TrendingUp, Users, Play,
-  Calendar,
+  Calendar, Loader2,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { outboundTasks, callRecords } from '@/lib/mock-data';
-
-const trendData = [
-  { date: '07-04', calls: 320, connected: 198 },
-  { date: '07-05', calls: 450, connected: 287 },
-  { date: '07-06', calls: 380, connected: 234 },
-  { date: '07-07', calls: 510, connected: 312 },
-  { date: '07-08', calls: 420, connected: 268 },
-  { date: '07-09', calls: 390, connected: 245 },
-  { date: '07-10', calls: 480, connected: 305 },
-];
-
-const intentData = [
-  { name: 'S-高意向', value: 45, color: '#1677FF' },
-  { name: 'A-观望', value: 78, color: '#FF7D00' },
-  { name: 'B-无意向', value: 156, color: '#8C97A9' },
-  { name: 'C/D-无效', value: 89, color: '#F53F3F' },
-];
+import { fetchOutboundDashboard, type OutboundTask, type OutboundDashboardData } from '@/lib/services/admin-api';
+import { BviVisibilityCard } from '@/components/bvi-visibility-card';
 
 const statusColors: Record<string, string> = {
   '待执行': 'bg-gray-100 text-gray-600',
@@ -37,15 +21,39 @@ const statusColors: Record<string, string> = {
   '异常失败': 'bg-red-50 text-red-600',
 };
 
+const intentColorMap: Record<string, string> = {
+  'S-高意向': '#1677FF', 'A-观望': '#FF7D00', 'B-无意向': '#8C97A9', 'C-无效号码': '#F53F3F', 'D-拒接': '#F53F3F',
+};
+
 export default function OutboundCallDashboard() {
   const [timeRange, setTimeRange] = useState('今日');
+  const [data, setData] = useState<OutboundDashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const totalCalls = callRecords.length;
-  const connectedCalls = callRecords.filter(r => r.status === '已接通').length;
-  const leadCount = callRecords.filter(r => r.intentTag === 'S-高意向' || r.intentTag === 'A-观望').length;
-  const activeTasks = outboundTasks.filter(t => t.status === '执行中').length;
-  const connectRate = totalCalls > 0 ? ((connectedCalls / totalCalls) * 100).toFixed(1) : '0';
-  const leadRate = totalCalls > 0 ? ((leadCount / totalCalls) * 100).toFixed(1) : '0';
+  useEffect(() => {
+    (async () => {
+      try {
+        const d = await fetchOutboundDashboard();
+        setData(d);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const stats = data?.stats;
+  const trendData = data?.trend || [];
+  const intentData = (data?.intentData || []).map((d) => ({ name: d.name, value: d.value, color: intentColorMap[d.name] || '#8C97A9' }));
+  const recentTasks: OutboundTask[] = data?.recentTasks || [];
+
+  const totalCalls = stats?.totalCalls ?? 0;
+  const connectedCalls = stats?.connectedCalls ?? 0;
+  const connectRate = stats?.connectRate ?? 0;
+  const leadCount = stats?.leadCount ?? 0;
+  const leadRate = stats?.leadRate ?? 0;
+  const activeTasks = stats?.activeTasks ?? 0;
 
   return (
     <div className="p-6">
@@ -61,7 +69,7 @@ export default function OutboundCallDashboard() {
               key={t}
               onClick={() => setTimeRange(t)}
               className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
-                timeRange === t ? 'bg-[#1677FF] text-white' : 'bg-white text-[#666] hover:bg-gray-50'
+                timeRange === t ? 'bg-primary text-white' : 'bg-white text-[#666] hover:bg-gray-50'
               }`}
             >
               {t}
@@ -70,16 +78,17 @@ export default function OutboundCallDashboard() {
         </div>
       </div>
 
+      {loading && <div className="mb-4 text-sm text-gray-400 flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />加载中...</div>}
       {/* Stats Cards */}
       <div className="mb-6 grid grid-cols-4 gap-4">
         <div className="rounded-lg bg-white p-5 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-              <Phone className="h-5 w-5 text-[#1677FF]" />
+              <Phone className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-xs text-[#999]">累计外呼总量</p>
-              <p className="text-2xl font-semibold text-[#333]">1,247</p>
+              <p className="text-2xl font-semibold text-[#333]">{totalCalls.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -117,6 +126,9 @@ export default function OutboundCallDashboard() {
           </div>
         </div>
       </div>
+
+      {/* F5.8 外呼工作台嵌入客户品牌 AI 可见度（BVI） */}
+      <BviVisibilityCard title="客户 AI 可见度 (BVI)" defaultBrand="拉克力智能外呼" />
 
       {/* Charts */}
       <div className="mb-6 grid grid-cols-3 gap-4">
@@ -156,7 +168,7 @@ export default function OutboundCallDashboard() {
       <div className="rounded-lg bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-medium text-[#333]">最近外呼任务</h3>
-          <a href="/outbound-call/tasks" className="text-xs text-[#1677FF] hover:underline">查看全部</a>
+          <a href="/outbound-call/tasks" className="text-xs text-primary hover:underline">查看全部</a>
         </div>
         <table className="w-full">
           <thead>
@@ -172,7 +184,7 @@ export default function OutboundCallDashboard() {
             </tr>
           </thead>
           <tbody>
-            {outboundTasks.slice(0, 5).map((task) => (
+            {recentTasks.map((task) => (
               <tr key={task.id} className="border-b border-gray-50 text-sm hover:bg-gray-50">
                 <td className="py-3 font-medium text-[#333]">{task.name}</td>
                 <td className="py-3 text-[#666]">{task.scriptSceneName}</td>

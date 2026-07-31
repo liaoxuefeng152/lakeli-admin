@@ -206,64 +206,6 @@ export const planDistribution = [
   { name: 'AI客服', value: 12 },
 ];
 
-// Agent Management Data
-export interface AgentInfo {
-  id: string;
-  name: string;
-  industry: string;
-  language: 'zh' | 'en' | 'both';
-  status: 'active' | 'inactive';
-  totalChats: number;
-  tokenUsed: number;
-  leadCount: number;
-  createdAt: string;
-  updatedAt: string;
-  promptConfig: string;
-  knowledgeBases: string[];
-  triggerKeywords: string;
-  leadGuideScripts: string;
-  geoToolEnabled: boolean;
-  dailyExtraQuota: number;
-}
-
-export interface ChatMessage {
-  role: 'customer' | 'agent';
-  content: string;
-  meta?: string;
-}
-
-export interface AgentChatRecord {
-  id: string;
-  agentName: string;
-  customerId: string;
-  customerName: string;
-  customerPhone: string;
-  customerCompany: string;
-  question: string;
-  answer: string;
-  tokensUsed: number;
-  isLeadGenerated: boolean;
-  isTransferredToWecom: boolean;
-  createdAt: string;
-  messages: ChatMessage[];
-}
-
-export interface MigrationLog {
-  id: string;
-  importTime: string;
-  total: number;
-  success: number;
-  failed: number;
-  fileName: string;
-}
-
-export interface ModelRouteConfig {
-  id: string;
-  industry: string;
-  defaultModel: string;
-  agentCount: number;
-}
-
 export interface OperationLog {
   id: string;
   operator: string;
@@ -274,63 +216,122 @@ export interface OperationLog {
   createdAt: string;
 }
 
-export const agents: AgentInfo[] = [
-  { id: 'AG001', name: '跨境电商顾问', industry: '通用GEO', language: 'both', status: 'active', totalChats: 1250, tokenUsed: 850000, leadCount: 45, createdAt: '2026-03-01', updatedAt: '2026-07-10', promptConfig: '你是一个专业的跨境电商顾问AI助手，精通GEO优化、Google SGE排名策略、多语言SEO。你需要以专业、友好的语气回答用户问题，并在适当时机引导用户留下联系方式。', knowledgeBases: ['product', 'geo'], triggerKeywords: '报价,合作,价格,多少钱', leadGuideScripts: '感谢您的关注！为了给您提供更精准的方案，方便留下您的手机号或微信吗？我们的专属顾问会在24小时内联系您。', geoToolEnabled: true, dailyExtraQuota: 0 },
-  { id: 'AG002', name: '工业设备专家', industry: '工业机械', language: 'zh', status: 'active', totalChats: 680, tokenUsed: 420000, leadCount: 22, createdAt: '2026-04-15', updatedAt: '2026-07-09', promptConfig: '你是一位工业设备领域的资深技术顾问，熟悉数控机床、自动化设备、智能制造等行业。你需要根据用户的具体需求，提供专业的技术建议和市场分析。', knowledgeBases: ['product', 'industry'], triggerKeywords: '报价,技术参数,联系方式', leadGuideScripts: '如需获取详细技术方案和报价，请留下您的联系方式，我们的工程师团队会尽快与您对接。', geoToolEnabled: false, dailyExtraQuota: 20 },
-  { id: 'AG003', name: '本地门店助手', industry: '本地商家', language: 'zh', status: 'active', totalChats: 920, tokenUsed: 580000, leadCount: 38, createdAt: '2026-03-20', updatedAt: '2026-07-10', promptConfig: '你是本地门店经营AI助手，擅长本地SEO、Google商家资料优化、门店引流策略。回答要简洁实用，适合中小门店经营者理解。', knowledgeBases: ['product'], triggerKeywords: '报价,合作,联系方式', leadGuideScripts: '我们可以为您提供免费的门店AI曝光诊断，请留下您的联系方式，顾问会尽快安排。', geoToolEnabled: true, dailyExtraQuota: 0 },
-  { id: 'AG004', name: '黄精外贸顾问', industry: '黄精跨境', language: 'en', status: 'active', totalChats: 450, tokenUsed: 310000, leadCount: 15, createdAt: '2026-05-10', updatedAt: '2026-07-08', promptConfig: 'You are a professional cross-border trade consultant specializing in Rhodiola rosea and herbal products. You should provide export compliance, certification guidance, and market analysis for EU/US markets.', knowledgeBases: ['product', 'geo', 'industry'], triggerKeywords: 'quote,certification,contact', leadGuideScripts: 'For detailed export consultation, please leave your contact information. Our trade specialist will reach out within 24 hours.', geoToolEnabled: false, dailyExtraQuota: 10 },
-  { id: 'AG005', name: '科创企业助手', industry: '通用GEO', language: 'both', status: 'inactive', totalChats: 120, tokenUsed: 85000, leadCount: 5, createdAt: '2026-06-01', updatedAt: '2026-07-05', promptConfig: '你是科创企业的AI营销顾问，专注于帮助科技初创公司提升品牌在AI搜索引擎中的可见度。', knowledgeBases: ['product'], triggerKeywords: '合作,方案', leadGuideScripts: '如需定制化的AI品牌曝光方案，请留下联系方式。', geoToolEnabled: false, dailyExtraQuota: 0 },
+// ==================== 龙掌柜AI助手 - 技能管理 ====================
+export interface LzgSkill {
+  id: string;
+  name: string;
+  key: string;
+  category: string;
+  type: 'builtin' | 'marketplace';
+  description: string;
+  modelId: string;
+  modelName: string;
+  promptTemplate: string;
+  defaultParams: Record<string, string>;
+  icon: string;
+  sortOrder: number;
+  isEnabled: boolean;
+  callCount: number;
+  successRate: number;
+  avgDuration: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LzgSkillCategory {
+  id: string;
+  name: string;
+  sortOrder: number;
+}
+
+export const lzgSkillCategories: LzgSkillCategory[] = [
+  { id: 'SC001', name: '内容创作', sortOrder: 1 },
+  { id: 'SC002', name: '选品分析', sortOrder: 2 },
+  { id: 'SC003', name: '运营工具', sortOrder: 3 },
+  { id: 'SC004', name: '营销推广', sortOrder: 4 },
+  { id: 'SC005', name: '数据分析', sortOrder: 5 },
 ];
 
-export const agentChatRecords: AgentChatRecord[] = [
-  { id: 'AC001', agentName: '跨境电商顾问', customerId: 'C001', customerName: '深圳跨境通科技有限公司', customerPhone: '13800001111', customerCompany: '深圳跨境通科技有限公司', question: '如何提升在Google SGE中的排名？', answer: '建议优化产品页面的结构化数据，增加FAQ Schema，并确保内容包含用户搜索意图的长尾关键词。', tokensUsed: 850, isLeadGenerated: false, isTransferredToWecom: false, createdAt: '2026-07-10 09:15', messages: [
-    { role: 'customer', content: '你好，我想了解一下怎么提升我们在Google SGE中的排名？' },
-    { role: 'agent', content: '您好！很高兴为您解答。提升Google SGE排名需要从以下几个方面入手：\n\n1. **结构化数据优化**：确保产品页面包含FAQ Schema、Product Schema等结构化标记\n2. **内容意图匹配**：围绕用户搜索意图创建长尾关键词内容\n3. **E-E-A-T强化**：增加作者专业背景、引用权威数据源\n4. **技术SEO基础**：确保Core Web Vitals达标、移动端适配良好\n\n请问您的网站目前主要面向哪些市场？我可以给出更有针对性的建议。' },
-    { role: 'customer', content: '主要面向欧美市场，做消费电子产品的' },
-    { role: 'agent', content: '针对欧美消费电子市场，建议重点关注：\n\n- **产品评测类内容**：欧美用户购买前习惯搜索评测，可创建对比类文章\n- **视频内容嵌入**：YouTube视频在SGE中有较高权重\n- **本地化关键词**：注意美式英语与英式英语的差异\n\n如需更详细的优化方案，我可以安排专属顾问为您做免费诊断。' },
-  ]},
-  { id: 'AC002', agentName: '工业设备专家', customerId: 'C002', customerName: '东莞精密工业设备有限公司', customerPhone: '13900002222', customerCompany: '东莞精密工业设备有限公司', question: '我们的数控机床适合海外市场吗？', answer: '根据当前市场数据，东南亚和中东地区对中高端数控机床需求旺盛。建议先从越南、泰国市场切入，提供多语言产品资料。', tokensUsed: 1200, isLeadGenerated: true, isTransferredToWecom: true, createdAt: '2026-07-10 10:30', messages: [
-    { role: 'customer', content: '我们公司主要生产CNC数控机床，想开拓海外市场，你觉得哪些市场比较适合？' },
-    { role: 'agent', content: '根据当前市场数据分析，以下区域对中高端数控机床需求旺盛：\n\n1. **东南亚**（越南、泰国）：制造业转移承接地，需求增长30%+\n2. **中东**（沙特、阿联酋）：基建投资加大，高端设备进口需求强\n3. **南美**（巴西、墨西哥）：汽车产业链配套需求\n\n建议先从越南、泰国切入，这两个市场：\n- 关税优惠较多\n- 中文服务接受度高\n- 竞品以日系为主，中国设备性价比优势明显\n\n需要我帮您分析具体的市场准入要求吗？' },
-    { role: 'customer', content: '好的，那出口的话需要哪些认证？报价方案是怎样的？' },
-    { role: 'agent', content: '出口认证方面：\n- **CE认证**（欧洲市场必备）\n- **ISO 9001**（基础质量管理体系）\n- **目标国本地认证**（如越南的CR标志）\n\n关于详细的报价方案和出口支持计划，我可以安排我们的海外业务总监与您一对一沟通。方便留下您的手机号或微信吗？我们的顾问会在24小时内联系您。' },
-    { role: 'customer', content: '好的，我的手机号是13900002222，姓张' },
-    { role: 'agent', content: '收到！已为您记录信息。我们的海外业务总监张顾问会在明天上午联系您，为您提供：\n1. 目标市场认证清单\n2. 定制化报价方案\n3. 售后支持体系介绍\n\n感谢您的信任！' },
-  ]},
-  { id: 'AC003', agentName: '本地门店助手', customerId: 'C003', customerName: '广州本地生活服务有限公司', customerPhone: '13700003333', customerCompany: '广州本地生活服务有限公司', question: '怎么提高门店在AI搜索中的曝光？', answer: '建议完善Google商家资料、增加本地化关键词内容、鼓励客户留下好评，并定期更新门店动态。', tokensUsed: 680, isLeadGenerated: false, isTransferredToWecom: false, createdAt: '2026-07-10 11:45', messages: [
-    { role: 'customer', content: '我开了一家美容院，怎么让附近的人在用AI搜索的时候能找到我的店？' },
-    { role: 'agent', content: '提升门店在AI搜索中的曝光，建议从以下几点入手：\n\n1. **完善Google商家资料**：确保地址、营业时间、服务项目、照片全部填写完整\n2. **本地化关键词**：在网站内容中加入"城市+区域+服务"的关键词组合\n3. **好评管理**：鼓励满意客户在Google留下好评，回复每一条评价\n4. **定期更新动态**：每周至少发布1-2条门店动态/优惠信息\n5. **本地内容营销**：创建与本地社区相关的内容\n\n您的门店目前有线上网站吗？' },
-    { role: 'customer', content: '有一个简单的网站，但很久没更新了' },
-    { role: 'agent', content: '建议您优先做这几件事：\n\n1. 更新网站内容，加入最新的服务项目和价格\n2. 确保网站在手机上能正常浏览\n3. 在Google商家资料中上传最新的门店照片\n4. 设置一个定期更新计划\n\n我们可以帮您做一套完整的本地AI曝光优化方案，需要的话请留下联系方式。' },
-  ]},
-  { id: 'AC004', agentName: '黄精外贸顾问', customerId: 'C006', customerName: '珠海黄精生物科技有限公司', customerPhone: '13600006666', customerCompany: '珠海黄精生物科技有限公司', question: 'What certifications do we need for EU market?', answer: 'For the EU market, you will need CE marking, REACH compliance, and potentially Novel Food authorization for Rhodiola rosea products.', tokensUsed: 950, isLeadGenerated: true, isTransferredToWecom: false, createdAt: '2026-07-10 14:00', messages: [
-    { role: 'customer', content: 'Hi, we are a Rhodiola rosea manufacturer in China. What certifications do we need to export to the EU market?' },
-    { role: 'agent', content: 'For the EU market, you will need the following certifications:\n\n1. **CE Marking** - Required for product safety compliance\n2. **REACH Compliance** - Registration, Evaluation, Authorisation and Restriction of Chemicals\n3. **Novel Food Authorization** - Required for Rhodiola rosea products if marketed as food/supplement\n4. **GMP Certificate** - Good Manufacturing Practice documentation\n5. **Certificate of Analysis (CoA)** - For each batch\n\nAdditionally, if you plan to make health claims, you will need EFSA (European Food Safety Authority) approval.\n\nWould you like detailed guidance on any specific certification?' },
-    { role: 'customer', content: 'Yes, we need more details on Novel Food authorization. How long does it take?' },
-    { role: 'agent', content: 'The Novel Food authorization process typically takes **18-24 months** and involves:\n\n1. **Application Submission** to a EU member state competent authority\n2. **Safety Assessment** by EFSA (European Food Safety Authority)\n3. **Authorization Decision** by the European Commission\n\nRequired documentation:\n- Comprehensive safety studies\n- Composition and nutritional data\n- Proposed uses and use levels\n- Manufacturing process details\n\nFor detailed consultation on the application process, please leave your contact information. Our trade specialist will reach out within 24 hours.' },
-    { role: 'customer', content: 'Sure, my email is export@huangjing-bio.com' },
-    { role: 'agent', content: 'Thank you! Our EU trade compliance specialist will contact you at export@huangjing-bio.com within 24 hours with:\n1. Detailed Novel Food application guide\n2. Timeline estimation for your specific products\n3. Recommended testing labs\n\nWe look forward to supporting your EU market entry!' },
-  ]},
-  { id: 'AC005', agentName: '跨境电商顾问', customerId: 'C004', customerName: '深圳创新科技集团', customerPhone: '13500004444', customerCompany: '深圳创新科技集团', question: '报价是多少？想了解一下合作方案', answer: '我们提供多种套餐方案，基础版5800元/年起。我可以安排专属销售顾问为您详细讲解，请问方便留个联系方式吗？', tokensUsed: 720, isLeadGenerated: true, isTransferredToWecom: true, createdAt: '2026-07-10 15:20', messages: [
-    { role: 'customer', content: '你们的报价是多少？我想了解一下合作方案' },
-    { role: 'agent', content: '我们提供多种套餐方案：\n\n- **GEO基础版**：5,800元/年起，适合初创企业\n- **GEO专业版**：12,800元/年起，包含完整GEO优化\n- **GEO旗舰版**：28,800元/年起，全渠道AI搜索优化\n\n每个方案都包含：AI搜索排名监控、内容优化建议、竞品分析。\n\n请问您的企业规模和主要需求是什么？我可以帮您推荐最合适的方案。' },
-    { role: 'customer', content: '我们是一个50人的科技公司，主要做智能硬件出口' },
-    { role: 'agent', content: '针对50人规模的智能硬件出口企业，我推荐**GEO专业版**：\n\n- 覆盖Google SGE、Bing Copilot、Perplexity等主流AI搜索\n- 多语言内容优化（英/日/韩）\n- 每周排名监控报告\n- 专属客户成功经理\n\n如需详细了解方案内容和成功案例，我可以安排专属销售顾问为您做一对一讲解。方便留下您的手机号或微信吗？' },
-    { role: 'customer', content: '好的，我手机13500004444，微信同号' },
-    { role: 'agent', content: '收到！已为您记录信息。我们的专属顾问会在今天内联系您，为您准备：\n1. GEO专业版详细方案\n2. 智能硬件行业成功案例\n3. 免费AI搜索曝光诊断报告\n\n感谢您的信任！' },
-  ]},
-  { id: 'AC006', agentName: '本地门店助手', customerId: 'C007', customerName: '成都味道餐饮管理有限公司', customerPhone: '13100007777', customerCompany: '成都味道餐饮管理有限公司', question: '我们开了3家分店，怎么让每家店都能在AI搜索中被推荐？', answer: '建议为每家分店创建独立的Google商家资料，使用本地化关键词策略，并确保各分店信息一致性。', tokensUsed: 560, isLeadGenerated: false, isTransferredToWecom: false, createdAt: '2026-07-09 16:30', messages: [
-    { role: 'customer', content: '我们成都有3家火锅店分店，怎么让每家店都能在AI搜索中被推荐？' },
-    { role: 'agent', content: '多门店AI搜索优化策略：\n\n1. **独立商家资料**：为每家分店创建独立的Google商家资料\n2. **地址精准化**：确保每家店的地址、电话、营业时间准确\n3. **区域关键词**：每家店侧重"区域+火锅"关键词（如"春熙路火锅"、"玉林路火锅"）\n4. **评价差异化**：鼓励各分店客户留下带具体位置的评价\n5. **信息一致性**：确保各平台（美团、大众点评、Google）信息一致\n\n需要帮您制定详细的多门店优化方案吗？' },
-  ]},
-  { id: 'AC007', agentName: '工业设备专家', customerId: 'C008', customerName: '苏州自动化科技有限公司', customerPhone: '13200008888', customerCompany: '苏州自动化科技有限公司', question: '我们的自动化产线出口到东南亚需要什么技术支持？', answer: '东南亚市场需要关注电压标准适配、多语言操作界面、当地售后服务网络建设等方面。', tokensUsed: 890, isLeadGenerated: true, isTransferredToWecom: false, createdAt: '2026-07-09 14:20', messages: [
-    { role: 'customer', content: '我们的自动化产线想出口到越南，需要哪些技术支持？' },
-    { role: 'agent', content: '出口越南的自动化产线需要关注以下技术要点：\n\n1. **电压标准适配**：越南使用220V/50Hz，需确认设备兼容性\n2. **多语言HMI**：操作界面需支持越南语\n3. **热带环境适配**：防潮、散热设计需加强\n4. **备件供应**：建议在越南设立备件仓库\n5. **培训支持**：需提供越南语操作培训资料\n\n需要更详细的技术方案吗？' },
-    { role: 'customer', content: '需要，请安排技术人员和我们对接' },
-    { role: 'agent', content: '好的，我可以安排我们的海外技术支持团队与您对接。请留下您的联系方式，技术总监会在24小时内联系您，为您提供：\n1. 越南市场技术适配清单\n2. 定制化改造方案\n3. 售后服务体系建议' },
-    { role: 'customer', content: '我的电话13200008888，找李工' },
-    { role: 'agent', content: '收到！李工，我们的海外技术支持团队会在明天上午联系您。感谢您的信任！' },
-  ]},
+export const lzgSkills: LzgSkill[] = [
+  { id: 'SK001', name: 'AI 作图', key: 'ai-image', category: '内容创作', type: 'builtin', description: '根据描述生成商品展示图、营销海报、场景图', modelId: 'M001', modelName: 'GPT-4o', promptTemplate: '生成一张电商商品展示图，产品为{product}，风格{style}，背景{background}。要求高清、适合跨境电商平台。', defaultParams: { product: '', style: '简约商务', background: '纯白' }, icon: 'Image', sortOrder: 1, isEnabled: true, callCount: 3250, successRate: 0.94, avgDuration: 8.5, createdAt: '2026-05-01', updatedAt: '2026-07-20' },
+  { id: 'SK002', name: 'AI 视频', key: 'ai-video', category: '内容创作', type: 'builtin', description: 'AI生成短视频广告素材，支持多尺寸、多语言', modelId: 'M002', modelName: 'Sora', promptTemplate: '', defaultParams: { duration: '15s', ratio: '16:9', lang: 'en' }, icon: 'Video', sortOrder: 2, isEnabled: true, callCount: 1800, successRate: 0.88, avgDuration: 45.2, createdAt: '2026-05-10', updatedAt: '2026-07-18' },
+  { id: 'SK003', name: '智能选品', key: 'smart-selection', category: '选品分析', type: 'builtin', description: '基于市场趋势和竞品分析，推荐高潜力商品', modelId: 'M003', modelName: 'DeepSeek-V3', promptTemplate: '分析{market}市场{categorization}品类，结合近期趋势和竞品表现，推荐{count}个高潜力商品，并给出理由。', defaultParams: { market: '美国', categorization: '家居', count: '10' }, icon: 'SearchCheck', sortOrder: 3, isEnabled: true, callCount: 4200, successRate: 0.92, avgDuration: 12.3, createdAt: '2026-04-20', updatedAt: '2026-07-22' },
+  { id: 'SK004', name: 'Listing 优化', key: 'listing-optimizer', category: '运营工具', type: 'builtin', description: '优化商品标题、五点描述、A+文案，提升搜索排名', modelId: 'M003', modelName: 'DeepSeek-V3', promptTemplate: '优化以下跨境电商商品Listing：\n平台：{platform}\n原标题：{title}\n产品要点：{keyPoints}\n目标关键词：{keywords}\n要求：SEO友好、突出卖点、含关键词语义覆盖', defaultParams: { platform: 'Amazon', title: '', keyPoints: '', keywords: '' }, icon: 'FileText', sortOrder: 4, isEnabled: true, callCount: 5600, successRate: 0.96, avgDuration: 6.8, createdAt: '2026-04-15', updatedAt: '2026-07-21' },
+  { id: 'SK005', name: '广告优化', key: 'ad-optimizer', category: '营销推广', type: 'builtin', description: '智能优化PPC广告文案和投放策略', modelId: 'M004', modelName: 'Claude 3.5', promptTemplate: '', defaultParams: {}, icon: 'Megaphone', sortOrder: 5, isEnabled: true, callCount: 2100, successRate: 0.85, avgDuration: 9.1, createdAt: '2026-05-20', updatedAt: '2026-07-15' },
+  { id: 'SK006', name: '自动客服', key: 'auto-service', category: '运营工具', type: 'builtin', description: 'AI自动回复买家消息、处理退货、发送跟进', modelId: 'M001', modelName: 'GPT-4o', promptTemplate: '', defaultParams: {}, icon: 'MessageCircle', sortOrder: 6, isEnabled: true, callCount: 8900, successRate: 0.91, avgDuration: 3.2, createdAt: '2026-04-01', updatedAt: '2026-07-22' },
+  { id: 'SK007', name: '浏览器自动化', key: 'browser-agent', category: '运营工具', type: 'builtin', description: 'AI操作浏览器完成批量上架、数据采集、报表导出', modelId: 'M003', modelName: 'DeepSeek-V3', promptTemplate: '', defaultParams: {}, icon: 'Globe', sortOrder: 7, isEnabled: false, callCount: 450, successRate: 0.72, avgDuration: 28.5, createdAt: '2026-06-01', updatedAt: '2026-07-10' },
+  { id: 'SK008', name: '数据洞察', key: 'data-insight', category: '数据分析', type: 'builtin', description: '分析店铺运营数据，生成可视化报告和经营建议', modelId: 'M004', modelName: 'Claude 3.5', promptTemplate: '', defaultParams: {}, icon: 'BarChart3', sortOrder: 8, isEnabled: true, callCount: 3100, successRate: 0.93, avgDuration: 15.7, createdAt: '2026-04-25', updatedAt: '2026-07-19' },
+  { id: 'SK009', name: '竞品监控', key: 'competitor-watch', category: '选品分析', type: 'marketplace', description: '自动追踪竞品价格、评分、排名变化并预警', modelId: 'M003', modelName: 'DeepSeek-V3', promptTemplate: '', defaultParams: {}, icon: 'Eye', sortOrder: 9, isEnabled: true, callCount: 750, successRate: 0.89, avgDuration: 20.1, createdAt: '2026-06-10', updatedAt: '2026-07-08' },
+  { id: 'SK010', name: '侵权检测', key: 'infringement-check', category: '选品分析', type: 'marketplace', description: '检测商品图片和标题是否存在版权/商标侵权风险', modelId: 'M001', modelName: 'GPT-4o', promptTemplate: '', defaultParams: {}, icon: 'Shield', sortOrder: 10, isEnabled: true, callCount: 1200, successRate: 0.87, avgDuration: 11.4, createdAt: '2026-06-15', updatedAt: '2026-07-12' },
+  { id: 'SK011', name: '物流比价', key: 'logistics-compare', category: '运营工具', type: 'marketplace', description: '对比多家物流方案，计算最优成本和时效', modelId: 'M003', modelName: 'DeepSeek-V3', promptTemplate: '', defaultParams: {}, icon: 'Truck', sortOrder: 11, isEnabled: true, callCount: 680, successRate: 0.95, avgDuration: 5.2, createdAt: '2026-07-01', updatedAt: '2026-07-20' },
+  { id: 'SK012', name: '多语言翻译', key: 'multi-translate', category: '内容创作', type: 'marketplace', description: '跨境电商专业翻译，保持SEO优化和语感自然', modelId: 'M001', modelName: 'GPT-4o', promptTemplate: '', defaultParams: {}, icon: 'Languages', sortOrder: 12, isEnabled: true, callCount: 2500, successRate: 0.98, avgDuration: 2.8, createdAt: '2026-05-25', updatedAt: '2026-07-21' },
+  { id: 'SK013', name: '客服话术模板', key: 'crm-scripts', category: '营销推广', type: 'marketplace', description: '预制多场景客服话术模板，自动适配买家情绪', modelId: 'M001', modelName: 'GPT-4o', promptTemplate: '', defaultParams: {}, icon: 'MessageSquare', sortOrder: 13, isEnabled: false, callCount: 320, successRate: 0.82, avgDuration: 4.6, createdAt: '2026-07-05', updatedAt: '2026-07-15' },
+  { id: 'SK014', name: '社媒营销文案', key: 'social-copy', category: '营销推广', type: 'marketplace', description: '生成TikTok/Instagram/Facebook等平台的营销文案', modelId: 'M004', modelName: 'Claude 3.5', promptTemplate: '', defaultParams: {}, icon: 'Share2', sortOrder: 14, isEnabled: true, callCount: 1850, successRate: 0.90, avgDuration: 4.2, createdAt: '2026-06-20', updatedAt: '2026-07-18' },
+  { id: 'SK015', name: '关键词分析', key: 'keyword-analysis', category: '选品分析', type: 'marketplace', description: '深度分析搜索关键词热度、竞争度和转化潜力', modelId: 'M003', modelName: 'DeepSeek-V3', promptTemplate: '', defaultParams: {}, icon: 'TrendingUp', sortOrder: 15, isEnabled: true, callCount: 3400, successRate: 0.94, avgDuration: 7.6, createdAt: '2026-05-15', updatedAt: '2026-07-22' },
+  { id: 'SK016', name: '评论分析', key: 'review-analyzer', category: '数据分析', type: 'marketplace', description: 'AI分析买家评论情感、提取高频关键词和产品痛点', modelId: 'M003', modelName: 'DeepSeek-V3', promptTemplate: '', defaultParams: {}, icon: 'Star', sortOrder: 16, isEnabled: true, callCount: 2200, successRate: 0.91, avgDuration: 10.3, createdAt: '2026-05-28', updatedAt: '2026-07-20' },
+];
+
+// ==================== 龙掌柜AI助手 - 配额管理 ====================
+export interface LzgQuotaPlan {
+  id: string;
+  name: string;
+  dailyChatLimit: number;
+  dailySkillLimit: number;
+  monthlyTokenLimit: number;
+  maxConcurrent: number;
+  price: number;
+  userCount: number;
+}
+
+export const lzgQuotaPlans: LzgQuotaPlan[] = [
+  { id: 'QP001', name: '免费版', dailyChatLimit: 20, dailySkillLimit: 5, monthlyTokenLimit: 50000, maxConcurrent: 1, price: 0, userCount: 128 },
+  { id: 'QP002', name: '专业版', dailyChatLimit: 200, dailySkillLimit: 50, monthlyTokenLimit: 500000, maxConcurrent: 3, price: 299, userCount: 56 },
+  { id: 'QP003', name: '旗舰版', dailyChatLimit: 1000, dailySkillLimit: 200, monthlyTokenLimit: 2000000, maxConcurrent: 5, price: 999, userCount: 18 },
+  { id: 'QP004', name: '企业版', dailyChatLimit: -1, dailySkillLimit: -1, monthlyTokenLimit: -1, maxConcurrent: 10, price: 3999, userCount: 5 },
+];
+
+// ==================== 龙掌柜AI助手 - 数据看板 ====================
+export interface LzgDashboardStats {
+  todaySessions: number;
+  todayMessages: number;
+  todayUsers: number;
+  todaySkills: number;
+  todayAssets: number;
+  totalUsers: number;
+  totalSessions: number;
+  avgResponseTime: number;
+}
+
+export const lzgDashboardStats: LzgDashboardStats = {
+  todaySessions: 256,
+  todayMessages: 3840,
+  todayUsers: 89,
+  todaySkills: 1520,
+  todayAssets: 340,
+  totalUsers: 1208,
+  totalSessions: 28560,
+  avgResponseTime: 2.8,
+};
+
+export const lzgDashboardTrend = [
+  { date: '07-17', sessions: 198, messages: 3120, users: 72, skills: 1340 },
+  { date: '07-18', sessions: 215, messages: 3450, users: 78, skills: 1420 },
+  { date: '07-19', sessions: 230, messages: 3580, users: 85, skills: 1480 },
+  { date: '07-20', sessions: 185, messages: 2860, users: 68, skills: 1150 },
+  { date: '07-21', sessions: 242, messages: 3720, users: 91, skills: 1550 },
+  { date: '07-22', sessions: 278, messages: 4050, users: 95, skills: 1600 },
+  { date: '07-23', sessions: 256, messages: 3840, users: 89, skills: 1520 },
+];
+
+export const lzgSkillRanks = [
+  { skill: '自动客服', count: 8900, color: '#1677FF' },
+  { skill: 'Listing 优化', count: 5600, color: '#00B42A' },
+  { skill: '智能选品', count: 4200, color: '#FF7D00' },
+  { skill: '关键词分析', count: 3400, color: '#722ED1' },
+  { skill: 'AI 作图', count: 3250, color: '#F53F3F' },
+  { skill: '数据洞察', count: 3100, color: '#0FC6C2' },
+  { skill: '多语言翻译', count: 2500, color: '#F7BA1E' },
+  { skill: '评论分析', count: 2200, color: '#14C9C9' },
 ];
 
 export const operationLogs: OperationLog[] = [
@@ -339,33 +340,9 @@ export const operationLogs: OperationLog[] = [
   { id: 'LOG003', operator: '张超管', action: '修改企微配置', module: '企微配置', detail: '更新欢迎语文案和分流规则', ip: '192.168.1.100', createdAt: '2026-07-10 14:20' },
   { id: 'LOG004', operator: '李运营', action: '导出客户数据', module: '客户管理', detail: '导出跨境电商行业客户列表（共35条）', ip: '192.168.1.101', createdAt: '2026-07-10 11:30' },
   { id: 'LOG005', operator: '王销售', action: '分配线索', module: '线索管理', detail: '将线索L004分配给刘销售', ip: '192.168.1.102', createdAt: '2026-07-10 10:15' },
-  { id: 'LOG006', operator: '李运营', action: '编辑Agent', module: 'Agent管理', detail: '更新智能体「跨境电商顾问」Prompt', ip: '192.168.1.101', createdAt: '2026-07-10 09:40' },
+  { id: 'LOG006', operator: '李运营', action: '编辑技能配置', module: '龙掌柜技能管理', detail: '启用技能「浏览器自动化」', ip: '192.168.1.101', createdAt: '2026-07-10 09:40' },
   { id: 'LOG007', operator: '张超管', action: '修改套餐配置', module: '订单中心', detail: '调整GEO专业版月付价格', ip: '192.168.1.100', createdAt: '2026-07-09 17:00' },
   { id: 'LOG008', operator: '李运营', action: '批量导入知识库', module: '知识库', detail: '导入行业场景库词条12条', ip: '192.168.1.101', createdAt: '2026-07-09 14:30' },
-];
-
-export const systemConfig = {
-  aiDailyQuota: 100,
-  geoScoreThreshold: 75,
-  intentKeywords: ['报价', '合作', '价格', '多少钱', '怎么收费', '联系方式', '电话'],
-  tokenLimitPerCustomer: 50000,
-  modelProvider: '自研Agent引擎',
-  fallbackEngine: '扣子平台',
-  dualEngineMode: true,
-};
-
-export const migrationLogs: MigrationLog[] = [
-  { id: 'ML001', importTime: '2026-07-10 14:30', total: 45, success: 43, failed: 2, fileName: 'coze_export_prompt_20260710.xlsx' },
-  { id: 'ML002', importTime: '2026-07-09 10:15', total: 120, success: 118, failed: 2, fileName: 'coze_export_faq_20260709.xlsx' },
-  { id: 'ML003', importTime: '2026-07-08 16:45', total: 30, success: 30, failed: 0, fileName: 'coze_export_knowledge_20260708.xlsx' },
-  { id: 'ML004', importTime: '2026-07-05 09:20', total: 80, success: 76, failed: 4, fileName: 'coze_export_prompt_20260705.xlsx' },
-];
-
-export const modelRouteConfigs: ModelRouteConfig[] = [
-  { id: 'MR001', industry: '通用GEO', defaultModel: '文心4.0', agentCount: 2 },
-  { id: 'MR002', industry: '黄精跨境', defaultModel: 'GPT-4o', agentCount: 1 },
-  { id: 'MR003', industry: '工业机械', defaultModel: '通义千问Max', agentCount: 1 },
-  { id: 'MR004', industry: '本地商家', defaultModel: '文心4.0', agentCount: 1 },
 ];
 
 // ==================== 智能推销外呼系统 ====================
@@ -526,3 +503,69 @@ export const outboundCallConfig: OutboundCallConfig = {
   retryCount: 3,
   status: '已连接',
 };
+
+// ==================== 跨境外贸知识引擎 - 跨租户汇总 ====================
+
+export interface KnowledgeEngineCrossTenantStats {
+  totalTenants: number;
+  activeTenants: number;
+  totalKnowledgeCount: number;
+  totalGeoContent: number;
+  avgEntityCompleteness: number;
+  avgQaHitRate: number;
+  weeklyNewKnowledge: number;
+  weeklyNewGeo: number;
+}
+
+export const knowledgeEngineCrossTenantStats: KnowledgeEngineCrossTenantStats = {
+  totalTenants: 12,
+  activeTenants: 9,
+  totalKnowledgeCount: 34680,
+  totalGeoContent: 2150,
+  avgEntityCompleteness: 87.5,
+  avgQaHitRate: 89.3,
+  weeklyNewKnowledge: 1280,
+  weeklyNewGeo: 95,
+};
+
+export const knowledgeEngineImportMonthTrend = [
+  { month: '1月', knowledge: 2800, geo: 180 },
+  { month: '2月', knowledge: 3200, geo: 210 },
+  { month: '3月', knowledge: 4100, geo: 280 },
+  { month: '4月', knowledge: 3800, geo: 250 },
+  { month: '5月', knowledge: 4500, geo: 310 },
+  { month: '6月', knowledge: 5200, geo: 350 },
+  { month: '7月', knowledge: 4800, geo: 320 },
+];
+
+export const knowledgeEngineTenantGrowthTrend = [
+  { month: '1月', tenants: 5 },
+  { month: '2月', tenants: 6 },
+  { month: '3月', tenants: 7 },
+  { month: '4月', tenants: 8 },
+  { month: '5月', tenants: 9 },
+  { month: '6月', tenants: 11 },
+  { month: '7月', tenants: 12 },
+];
+
+export interface KnowledgeEngineTenantStat {
+  tenantId: string;
+  tenantName: string;
+  knowledgeCount: number;
+  geoContentCount: number;
+  entityCompleteness: number;
+  qaHitRate: number;
+  lastImportAt: string;
+  status: 'active' | 'inactive';
+}
+
+export const knowledgeEngineTenantList: KnowledgeEngineTenantStat[] = [
+  { tenantId: 'T001', tenantName: '华易通国际贸易', knowledgeCount: 5280, geoContentCount: 310, entityCompleteness: 92.1, qaHitRate: 91.5, lastImportAt: '2026-07-20 14:30', status: 'active' },
+  { tenantId: 'T002', tenantName: '鑫盛源工贸集团', knowledgeCount: 4160, geoContentCount: 260, entityCompleteness: 88.7, qaHitRate: 88.2, lastImportAt: '2026-07-19 09:15', status: 'active' },
+  { tenantId: 'T003', tenantName: '鼎丰机械贸易', knowledgeCount: 3850, geoContentCount: 220, entityCompleteness: 85.3, qaHitRate: 89.8, lastImportAt: '2026-07-18 16:45', status: 'active' },
+  { tenantId: 'T004', tenantName: '瑞达化工', knowledgeCount: 4120, geoContentCount: 245, entityCompleteness: 90.4, qaHitRate: 92.1, lastImportAt: '2026-07-21 11:00', status: 'active' },
+  { tenantId: 'T005', tenantName: '恒通数码科技', knowledgeCount: 2980, geoContentCount: 185, entityCompleteness: 82.6, qaHitRate: 85.9, lastImportAt: '2026-07-15 08:30', status: 'inactive' },
+  { tenantId: 'T006', tenantName: '锦程纺织', knowledgeCount: 3450, geoContentCount: 200, entityCompleteness: 87.1, qaHitRate: 88.7, lastImportAt: '2026-07-20 10:20', status: 'active' },
+  { tenantId: 'T007', tenantName: '康源生物科技', knowledgeCount: 5100, geoContentCount: 310, entityCompleteness: 93.5, qaHitRate: 94.2, lastImportAt: '2026-07-22 13:15', status: 'active' },
+  { tenantId: 'T008', tenantName: '德铭建材', knowledgeCount: 1740, geoContentCount: 120, entityCompleteness: 78.4, qaHitRate: 82.3, lastImportAt: '2026-07-10 09:00', status: 'inactive' },
+];

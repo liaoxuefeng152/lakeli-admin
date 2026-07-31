@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Download, Eye, MessageSquare, UserCheck, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Download, Eye, MessageSquare, UserCheck, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -12,14 +12,31 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { chatRecords } from '@/lib/mock-data';
-import type { ChatRecord } from '@/lib/mock-data';
+import { fetchAiServiceRecords, type AiServiceChatRecord } from '@/lib/services/admin-api';
+import { exportToCsv } from '@/lib/utils';
+import { BviVisibilityCard } from '@/components/bvi-visibility-card';
 
 export default function AiChatsPage() {
+  const [chatRecords, setChatRecords] = useState<AiServiceChatRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
-  const [selectedChat, setSelectedChat] = useState<ChatRecord | null>(null);
+  const [selectedChat, setSelectedChat] = useState<AiServiceChatRecord | null>(null);
 
-  const handleView = (chat: ChatRecord) => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchAiServiceRecords('chats');
+        setChatRecords(data as AiServiceChatRecord[]);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '加载失败');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const handleView = (chat: AiServiceChatRecord) => {
     setSelectedChat(chat);
     setShowDetail(true);
   };
@@ -31,17 +48,17 @@ export default function AiChatsPage() {
           <h1 className="text-xl font-bold text-gray-900">全量AI对话记录</h1>
           <p className="text-sm text-gray-500 mt-1">查看所有AI客服对话记录与留资情况</p>
         </div>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          导出记录
-        </Button>
+          <Button variant="outline" onClick={() => exportToCsv('AI客服会话记录.csv', ['客户', '提问内容', '置信度', '人工介入', '是否留资', '时间'], chatRecords.map((r) => [r.customerName, r.question, r.confidence, r.isHumanIntervention ? '是' : '否', r.isConverted ? '是' : '否', r.createdAt]))}>
+            <Download className="mr-2 h-4 w-4" />
+            导出记录
+          </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         <div className="rounded-xl bg-white border border-gray-100 shadow-sm p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E6F4FF]">
-            <MessageSquare className="h-5 w-5 text-[#1677FF]" />
+            <MessageSquare className="h-5 w-5 text-primary" />
           </div>
           <div>
             <div className="text-xl font-bold text-gray-900">2,350</div>
@@ -77,6 +94,9 @@ export default function AiChatsPage() {
         </div>
       </div>
 
+      {/* F5.8 客服工作台嵌入客户品牌 AI 可见度（BVI） */}
+      <BviVisibilityCard title="客户 AI 可见度 (BVI)" defaultBrand="智推AI客服" />
+
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-sm">
@@ -101,38 +121,54 @@ export default function AiChatsPage() {
             </tr>
           </thead>
           <tbody>
-            {chatRecords.map((chat) => (
-              <tr key={chat.id} className="border-b border-gray-50 hover:bg-[#F0FFF4] transition-colors">
-                <td className="px-5 py-4 text-sm font-medium text-gray-900">{chat.customerName}</td>
-                <td className="px-5 py-4 text-sm text-gray-600 max-w-[300px] truncate">{chat.question}</td>
-                <td className="px-5 py-4">
-                  <span className={`text-sm font-medium ${chat.confidence >= 0.9 ? 'text-[#00B42A]' : chat.confidence >= 0.8 ? 'text-[#FF7D00]' : 'text-[#F53F3F]'}`}>
-                    {(chat.confidence * 100).toFixed(0)}%
-                  </span>
-                </td>
-                <td className="px-5 py-4">
-                  {chat.isHumanIntervention ? (
-                    <Badge variant="secondary" className="text-xs bg-[#FFF7E6] text-[#FF7D00]">是</Badge>
-                  ) : (
-                    <span className="text-xs text-gray-400">否</span>
-                  )}
-                </td>
-                <td className="px-5 py-4">
-                  {chat.isConverted ? (
-                    <Badge className="text-xs bg-[#E8FFEA] text-[#00B42A] border-0">已留资</Badge>
-                  ) : (
-                    <span className="text-xs text-gray-400">否</span>
-                  )}
-                </td>
-                <td className="px-5 py-4 text-sm text-gray-500">{chat.createdAt}</td>
-                <td className="px-5 py-4 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleView(chat)}>
-                    <Eye className="h-3.5 w-3.5 mr-1" />
-                    查看对话
-                  </Button>
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center text-gray-400">
+                  <Loader2 className="inline h-4 w-4 animate-spin mr-2" />加载中...
                 </td>
               </tr>
-            ))}
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center text-[#F53F3F]">{error}</td>
+              </tr>
+            ) : chatRecords.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center text-gray-400">暂无数据</td>
+              </tr>
+            ) : (
+              chatRecords.map((chat) => (
+                <tr key={chat.id} className="border-b border-gray-50 hover:bg-[#F0FFF4] transition-colors">
+                  <td className="px-5 py-4 text-sm font-medium text-gray-900">{chat.customerName}</td>
+                  <td className="px-5 py-4 text-sm text-gray-600 max-w-[300px] truncate">{chat.question}</td>
+                  <td className="px-5 py-4">
+                    <span className={`text-sm font-medium ${chat.confidence >= 0.9 ? 'text-[#00B42A]' : chat.confidence >= 0.8 ? 'text-[#FF7D00]' : 'text-[#F53F3F]'}`}>
+                      {(chat.confidence * 100).toFixed(0)}%
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    {chat.isHumanIntervention ? (
+                      <Badge variant="secondary" className="text-xs bg-[#FFF7E6] text-[#FF7D00]">是</Badge>
+                    ) : (
+                      <span className="text-xs text-gray-400">否</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4">
+                    {chat.isConverted ? (
+                      <Badge className="text-xs bg-[#E8FFEA] text-[#00B42A] border-0">已留资</Badge>
+                    ) : (
+                      <span className="text-xs text-gray-400">否</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 text-sm text-gray-500">{chat.createdAt}</td>
+                  <td className="px-5 py-4 text-right">
+                    <Button variant="ghost" size="sm" onClick={() => handleView(chat)}>
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      查看对话
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -152,7 +188,7 @@ export default function AiChatsPage() {
               </div>
               <div className="space-y-3">
                 <div className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E6F4FF] text-xs text-[#1677FF]">客</div>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E6F4FF] text-xs text-primary">客</div>
                   <div className="rounded-lg bg-gray-50 p-3 text-sm text-gray-800">
                     {selectedChat.question}
                   </div>

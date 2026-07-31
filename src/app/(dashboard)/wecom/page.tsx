@@ -27,15 +27,19 @@ export default function WecomPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">全局企业微信配置中心</h1>
-        <Button className="bg-[#1677FF] hover:bg-[#1677FF]/90" onClick={handleSave}>
+        <Button className="bg-primary hover:bg-primary/90" onClick={handleSave}>
           <Save className="mr-2 h-4 w-4" />
           保存配置
         </Button>
       </div>
 
+      <div className="rounded-lg bg-[#FFF7E8] border border-[#FF7D00]/20 px-4 py-3 text-sm text-[#FF7D00]">
+        演示页面：当前未对接后端接口，「保存配置」仅临时保存在浏览器本地，不会真正下发到企业微信。
+      </div>
+
       {saved && (
         <div className="rounded-lg bg-[#E8FFEA] border border-[#00B42A]/20 px-4 py-3 text-sm text-[#00B42A]">
-          配置已保存并实时生效
+          配置已保存到本地（演示）
         </div>
       )}
 
