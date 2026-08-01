@@ -305,13 +305,13 @@ export default function PlatformModelManagementPage() {
 
       {/* Edit / Create Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {editing.id ? '编辑模型' : '新增模型'}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4 py-4 overflow-y-auto pr-1">
             <div className="space-y-1.5 col-span-2">
               <label className="text-sm font-medium">名称 *</label>
               <Input value={editing.name || ''} onChange={e => setEditing(p => ({ ...p, name: e.target.value }))}
