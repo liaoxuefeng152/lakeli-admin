@@ -707,28 +707,6 @@ export async function fetchGeoRecords(type: GeoRecordType): Promise<unknown[]> {
   return res.data;
 }
 
-// ============ 域途 GEO 文案生成 ============
-export interface GenerateCopyParams {
-  keyword: string;
-  customer: string;
-  copyType: string;
-  language: string;
-  wordCount: number;
-}
-
-export interface GenerateCopyResult {
-  content: string;
-}
-
-export async function generateGeoCopywriting(params: GenerateCopyParams): Promise<GenerateCopyResult> {
-  const res = await fetchJSON<{ data: GenerateCopyResult }>(`/api/geo/copywriting/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return res.data;
-}
-
 // ============ 智推 AI 客服 ============
 export interface AiServiceChatRecord {
   id: string;
