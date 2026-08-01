@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Download, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, Download, Loader2, PenLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,7 @@ const volumeBadgeStyle: Record<string, { bg: string; text: string }> = {
 };
 
 export default function GeoKeywordsPage() {
+  const router = useRouter();
   const [records, setRecords] = useState<KeywordRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,11 +105,12 @@ export default function GeoKeywordsPage() {
               <th className="px-5 py-3.5 text-left text-xs font-medium text-gray-500 uppercase">搜索量</th>
               <th className="px-5 py-3.5 text-left text-xs font-medium text-gray-500 uppercase">GEO价值</th>
               <th className="px-5 py-3.5 text-left text-xs font-medium text-gray-500 uppercase">挖掘时间</th>
+              <th className="px-5 py-3.5 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={9} className="px-5 py-12 text-center text-gray-400">
+              <tr><td colSpan={10} className="px-5 py-12 text-center text-gray-400">
                 <Loader2 className="h-5 w-5 animate-spin inline mr-2" />加载中...
               </td></tr>
             ) : filtered.map((r) => (
@@ -139,10 +142,21 @@ export default function GeoKeywordsPage() {
                   {r.geoValue || '-'}
                 </td>
                 <td className="px-5 py-4 text-sm text-gray-500">{r.date}</td>
+                <td className="px-5 py-4 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[#0F52BA] border-[#0F52BA]/30 hover:bg-[#F0F5FF] hover:border-[#0F52BA]"
+                    onClick={() => router.push(`/geo/copy?keyword=${encodeURIComponent(r.keyword)}&customer=${encodeURIComponent(r.customer)}`)}
+                  >
+                    <PenLine className="h-3.5 w-3.5 mr-1" />
+                    去生成文案
+                  </Button>
+                </td>
               </tr>
             ))}
             {!loading && filtered.length === 0 && (
-              <tr><td colSpan={9} className="px-5 py-12 text-center text-gray-400">暂无关键词记录</td></tr>
+              <tr><td colSpan={10} className="px-5 py-12 text-center text-gray-400">暂无关键词记录</td></tr>
             )}
           </tbody>
         </table>
