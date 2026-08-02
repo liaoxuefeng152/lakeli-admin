@@ -60,6 +60,8 @@ const menuGroups: MenuItem[] = [
       { key: 'geo-keywords', label: '关键词挖掘', path: '/geo/keywords' },
       { key: 'geo-monitor', label: 'AI监测数据', path: '/geo/monitor' },
       { key: 'geo-templates', label: '行业模板', path: '/geo/templates' },
+      { key: 'geo-agency', label: '代理商客户BVI', path: '/geo/agency', icon: Building2 },
+      { key: 'geo-agent', label: '代理商后台', path: '/geo/agent', icon: Users },
     ],
   },
   {
@@ -151,6 +153,8 @@ const ROLE_ACCESS: Record<string, string[]> = {
   'geo-keywords': [ADMIN_ROLE, OPERATOR_ROLE],
   'geo-monitor': [ADMIN_ROLE, OPERATOR_ROLE],
   'geo-templates': [ADMIN_ROLE, OPERATOR_ROLE],
+  'geo-agency': [ADMIN_ROLE, OPERATOR_ROLE],
+  'geo-agent': [ADMIN_ROLE, OPERATOR_ROLE],
   // 智推 AI 客服（配置类）
   'ai-keywords': [ADMIN_ROLE, OPERATOR_ROLE],
   'ai-quota': [ADMIN_ROLE, OPERATOR_ROLE],
