@@ -114,7 +114,7 @@ export default function AgencyPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {clients.map((c) => {
-          const tone = LEVEL_TONE[c.bvi_level] || "#FF7D00";
+          const tone = LEVEL_TONE[c.bvi_level ?? "medium"] || "#FF7D00";
           return (
             <Card key={c.name} className="hover:shadow-md transition">
               <CardHeader className="pb-2 flex flex-row items-center justify-between">
@@ -161,10 +161,10 @@ export default function AgencyPage() {
                       </div>
                     </div>
 
-                    {c.alerts?.length > 0 && (
+                    {c.alerts && c.alerts.length > 0 && (
                       <div className="text-xs text-amber-600 flex items-start gap-1">
                         <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                        <span className="line-clamp-2">{c.alerts[0].title}</span>
+                        <span className="line-clamp-2">{c.alerts[0]?.title}</span>
                       </div>
                     )}
                   </>
