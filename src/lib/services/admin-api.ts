@@ -3,11 +3,34 @@
 
 const BASE = '/api/admin';
 
+// 从 localStorage 读取当前登录用户，统一向后端注入 x-user-* 身份头，
+// 使所有经 fetchJSON 的接口（诊断/文案/关键词/监测/模板/admin-dashboard/assistant 等）
+// 自动携带操作者身份，后端据此鉴权与审计归因。
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  try {
+    const raw = localStorage.getItem('lakeli_admin_user');
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u.id) headers['x-user-id'] = String(u.id);
+      if (u.role) headers['x-user-role'] = String(u.role);
+      if (u.email) headers['x-user-email'] = String(u.email);
+    }
+  } catch {
+    // ignore corrupt storage
+  }
+  return headers;
+}
+
 async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, options);
+  const mergedHeaders: Record<string, string> = {
+    ...authHeaders(),
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  const res = await fetch(url, { ...options, headers: mergedHeaders });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    throw new Error(err.error || err.msg || `HTTP ${res.status}`);
   }
   return res.json();
 }

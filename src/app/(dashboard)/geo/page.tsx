@@ -23,6 +23,7 @@ import {
 } from 'recharts';
 import { geoRecords as mockGeoRecords } from '@/lib/mock-data';
 import { exportToCsv } from '@/lib/utils';
+import { fetchJSON } from '@/lib/services/admin-api';
 
 const mockDailyUsage = [
   { day: '07-04', diagnostics: 35, copy: 80, exposure: 5200 },
@@ -55,6 +56,7 @@ interface CustomerDetail {
   diagnosticsCount: number;
   copyCount: number;
   monitorExposure: number;
+  exposureEstimated?: boolean;
   date: string;
 }
 
@@ -84,18 +86,22 @@ export default function GeoOverviewPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/geo/admin-dashboard');
-        if (!res.ok) throw new Error('status ' + res.status);
-        const json = await res.json();
+        const json = await fetchJSON<{ code: number; data: { summary: Summary; trend: TrendRow[]; customerDetails: CustomerDetail[] } }>(
+          '/api/geo/admin-dashboard'
+        );
         if (json?.code === 0 && json.data) {
-          const d = json.data as { summary: Summary; trend: TrendRow[]; customerDetails: CustomerDetail[] };
+          const d = json.data;
           if (cancelled) return;
           setSummary(d.summary);
           if (Array.isArray(d.trend) && d.trend.length) setDailyUsage(d.trend);
           if (Array.isArray(d.customerDetails) && d.customerDetails.length) setCustomers(d.customerDetails);
         }
-      } catch (e) {
-        // 拉取失败：保留 mock 兜底，保证页面可用
+      } catch (e: any) {
+        // 鉴权失败（401/403）不应静默兜底为 mock，明确提示无权限；其他异常才兜底 mock
+        if (e?.message?.includes('401') || e?.message?.includes('403')) {
+          console.warn('[GEO] dashboard 无访问权限', e);
+          return;
+        }
         console.warn('[GEO] dashboard fetch failed, fallback to mock', e);
       } finally {
         if (!cancelled) setLoading(false);
@@ -202,7 +208,14 @@ export default function GeoOverviewPage() {
                 </td>
                 <td className="px-5 py-4 text-sm text-gray-600">{record.diagnosticsCount}</td>
                 <td className="px-5 py-4 text-sm text-gray-600">{record.copyCount}</td>
-                <td className="px-5 py-4 text-sm font-medium text-gray-900">{record.monitorExposure.toLocaleString()}</td>
+                <td className="px-5 py-4 text-sm font-medium text-gray-900">
+                  {record.monitorExposure.toLocaleString()}
+                  {record.exposureEstimated && (
+                    <span className="ml-1 text-xs text-gray-400" title="该曝光量按记录占比估算分配，非真实归因值">
+                      ≈估算
+                    </span>
+                  )}
+                </td>
                 <td className="px-5 py-4 text-sm text-gray-500">{record.date}</td>
                 <td className="px-5 py-4 text-right">
                   <Button variant="ghost" size="sm">
